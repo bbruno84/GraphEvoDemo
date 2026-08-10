@@ -1,6 +1,6 @@
 //
 //  AppDelegate.swift
-//  GraphCKDemo
+//  GraphEvoDemo
 //
 //  Created by Valerio Buriani on 09/09/25.
 //
@@ -23,7 +23,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        print("☁️ GraphCKDemo remote notification ricevuta: \(userInfo)")
+        print("☁️ GraphEvoDemo remote notification received: \(userInfo)")
         completionHandler(.newData)
     }
 

@@ -1,6 +1,6 @@
 //
 //  SceneDelegate 2.swift
-//  GraphCKDemo
+//  GraphEvoDemo
 //
 //  Created by Valerio Buriani on 09/09/25.
 //

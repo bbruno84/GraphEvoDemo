@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "156209FD2E6FFCF400293C6E"
-               BuildableName = "GraphCKDemo.app"
-               BlueprintName = "GraphCKDemo"
-               ReferencedContainer = "container:GraphCKDemo.xcodeproj">
+               BuildableName = "GraphEvoDemo.app"
+               BlueprintName = "GraphEvoDemo"
+               ReferencedContainer = "container:GraphEvoDemo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -29,18 +29,6 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
-      <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "A90000062E7A000100293C6E"
-               BuildableName = "GraphEvoTests.xctest"
-               BlueprintName = "GraphEvoTests"
-               ReferencedContainer = "container:GraphCKDemo.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -57,9 +45,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "156209FD2E6FFCF400293C6E"
-            BuildableName = "GraphCKDemo.app"
-            BlueprintName = "GraphCKDemo"
-            ReferencedContainer = "container:GraphCKDemo.xcodeproj">
+            BuildableName = "GraphEvoDemo.app"
+            BlueprintName = "GraphEvoDemo"
+            ReferencedContainer = "container:GraphEvoDemo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -91,9 +79,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "156209FD2E6FFCF400293C6E"
-            BuildableName = "GraphCKDemo.app"
-            BlueprintName = "GraphCKDemo"
-            ReferencedContainer = "container:GraphCKDemo.xcodeproj">
+            BuildableName = "GraphEvoDemo.app"
+            BlueprintName = "GraphEvoDemo"
+            ReferencedContainer = "container:GraphEvoDemo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

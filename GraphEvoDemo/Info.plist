@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-        <string>GraphCKDemo</string>
+        <string>GraphEvoDemo</string>
 
         <key>CFBundleIdentifier</key>
-        <string>com.valerioburiani.GraphCKDemo</string>
+        <string>com.valerioburiani.GraphEvoDemo</string>
 
         <key>CFBundleExecutable</key>
         <string>$(EXECUTABLE_NAME)</string>

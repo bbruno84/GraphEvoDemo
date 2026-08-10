@@ -9,36 +9,29 @@
 /* Begin PBXBuildFile section */
 		15620A0F2E6FFF1B00293C6E /* GraphEvo in Frameworks */ = {isa = PBXBuildFile; productRef = 15620A0E2E6FFF1B00293C6E /* GraphEvo */; };
 		15620A152E7000E900293C6E /* GraphEvo in Frameworks */ = {isa = PBXBuildFile; productRef = 15620A142E7000E900293C6E /* GraphEvo */; };
-		A90000012E7A000100293C6E /* GraphEvo in Frameworks */ = {isa = PBXBuildFile; productRef = A90000022E7A000100293C6E /* GraphEvo */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		156209FE2E6FFCF400293C6E /* GraphCKDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GraphCKDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A90000032E7A000100293C6E /* GraphEvoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GraphEvoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		156209FE2E6FFCF400293C6E /* GraphEvoDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GraphEvoDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		15BE04BD2E700B1B0098F09D /* Exceptions for "GraphCKDemo" folder in "GraphCKDemo" target */ = {
+		15BE04BD2E700B1B0098F09D /* Exceptions for "GraphEvoDemo" folder in "GraphEvoDemo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 156209FD2E6FFCF400293C6E /* GraphCKDemo */;
+			target = 156209FD2E6FFCF400293C6E /* GraphEvoDemo */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		15620A002E6FFCF400293C6E /* GraphCKDemo */ = {
+		15620A002E6FFCF400293C6E /* GraphEvoDemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				15BE04BD2E700B1B0098F09D /* Exceptions for "GraphCKDemo" folder in "GraphCKDemo" target */,
+				15BE04BD2E700B1B0098F09D /* Exceptions for "GraphEvoDemo" folder in "GraphEvoDemo" target */,
 			);
-			path = GraphCKDemo;
-			sourceTree = "<group>";
-		};
-		A90000042E7A000100293C6E /* GraphEvoTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ../Tests/GraphEvoTests;
+			path = GraphEvoDemo;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -53,22 +46,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A90000052E7A000100293C6E /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A90000012E7A000100293C6E /* GraphEvo in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		156209F52E6FFCF400293C6E = {
 			isa = PBXGroup;
 			children = (
-				15620A002E6FFCF400293C6E /* GraphCKDemo */,
-				A90000042E7A000100293C6E /* GraphEvoTests */,
+				15620A002E6FFCF400293C6E /* GraphEvoDemo */,
 				156209FF2E6FFCF400293C6E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -76,8 +60,7 @@
 		156209FF2E6FFCF400293C6E /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				156209FE2E6FFCF400293C6E /* GraphCKDemo.app */,
-				A90000032E7A000100293C6E /* GraphEvoTests.xctest */,
+				156209FE2E6FFCF400293C6E /* GraphEvoDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -85,9 +68,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		156209FD2E6FFCF400293C6E /* GraphCKDemo */ = {
+		156209FD2E6FFCF400293C6E /* GraphEvoDemo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 15620A092E6FFCF500293C6E /* Build configuration list for PBXNativeTarget "GraphCKDemo" */;
+			buildConfigurationList = 15620A092E6FFCF500293C6E /* Build configuration list for PBXNativeTarget "GraphEvoDemo" */;
 			buildPhases = (
 				156209FA2E6FFCF400293C6E /* Sources */,
 				156209FB2E6FFCF400293C6E /* Frameworks */,
@@ -98,39 +81,16 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				15620A002E6FFCF400293C6E /* GraphCKDemo */,
+				15620A002E6FFCF400293C6E /* GraphEvoDemo */,
 			);
-			name = GraphCKDemo;
+			name = GraphEvoDemo;
 			packageProductDependencies = (
 				15620A0E2E6FFF1B00293C6E /* GraphEvo */,
 				15620A142E7000E900293C6E /* GraphEvo */,
 			);
-			productName = GraphCKDemo;
-			productReference = 156209FE2E6FFCF400293C6E /* GraphCKDemo.app */;
+			productName = GraphEvoDemo;
+			productReference = 156209FE2E6FFCF400293C6E /* GraphEvoDemo.app */;
 			productType = "com.apple.product-type.application";
-		};
-		A90000062E7A000100293C6E /* GraphEvoTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A900000B2E7A000100293C6E /* Build configuration list for PBXNativeTarget "GraphEvoTests" */;
-			buildPhases = (
-				A90000072E7A000100293C6E /* Sources */,
-				A90000052E7A000100293C6E /* Frameworks */,
-				A90000082E7A000100293C6E /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				A90000042E7A000100293C6E /* GraphEvoTests */,
-			);
-			name = GraphEvoTests;
-			packageProductDependencies = (
-				A90000022E7A000100293C6E /* GraphEvo */,
-			);
-			productName = GraphEvoTests;
-			productReference = A90000032E7A000100293C6E /* GraphEvoTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -146,13 +106,9 @@
 						CreatedOnToolsVersion = 26.0;
 						LastSwiftMigration = 2600;
 					};
-					A90000062E7A000100293C6E = {
-						CreatedOnToolsVersion = 26.0;
-						TestTargetID = 156209FD2E6FFCF400293C6E;
-					};
 				};
 			};
-			buildConfigurationList = 156209F92E6FFCF400293C6E /* Build configuration list for PBXProject "GraphCKDemo" */;
+			buildConfigurationList = 156209F92E6FFCF400293C6E /* Build configuration list for PBXProject "GraphEvoDemo" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -162,15 +118,14 @@
 			mainGroup = 156209F52E6FFCF400293C6E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				15620A132E7000E900293C6E /* XCLocalSwiftPackageReference "../../GraphCK" */,
+				15620A132E7000E900293C6E /* XCRemoteSwiftPackageReference "GraphEvo" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 156209FF2E6FFCF400293C6E /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				156209FD2E6FFCF400293C6E /* GraphCKDemo */,
-				A90000062E7A000100293C6E /* GraphEvoTests */,
+				156209FD2E6FFCF400293C6E /* GraphEvoDemo */,
 			);
 		};
 /* End PBXProject section */
@@ -183,24 +138,10 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A90000082E7A000100293C6E /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		156209FA2E6FFCF400293C6E /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		A90000072E7A000100293C6E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -332,7 +273,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = GraphCKDemo/GraphCKDemo.entitlements;
+				CODE_SIGN_ENTITLEMENTS = GraphEvoDemo/GraphEvoDemo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P4J9773HQ4;
@@ -341,7 +282,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GraphCKDemo/Info.plist;
+				INFOPLIST_FILE = GraphEvoDemo/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -357,7 +298,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.valerioburiani.GraphCKDemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.valerioburiani.GraphEvoDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -366,7 +307,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "GraphCKDemo/GraphCKDemo-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "GraphEvoDemo/GraphEvoDemo-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -381,7 +322,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_ENABLE_MODULES = YES;
-				CODE_SIGN_ENTITLEMENTS = GraphCKDemo/GraphCKDemo.entitlements;
+				CODE_SIGN_ENTITLEMENTS = GraphEvoDemo/GraphEvoDemo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P4J9773HQ4;
@@ -390,7 +331,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = GraphCKDemo/Info.plist;
+				INFOPLIST_FILE = GraphEvoDemo/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -406,7 +347,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.5;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.valerioburiani.GraphCKDemo;
+				PRODUCT_BUNDLE_IDENTIFIER = com.valerioburiani.GraphEvoDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -415,7 +356,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "GraphCKDemo/GraphCKDemo-Bridging-Header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "GraphEvoDemo/GraphEvoDemo-Bridging-Header.h";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
@@ -423,38 +364,10 @@
 			};
 			name = Release;
 		};
-		A90000092E7A000100293C6E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.valerioburiani.GraphEvoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		A900000A2E7A000100293C6E /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGNING_ALLOWED = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.valerioburiani.GraphEvoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		156209F92E6FFCF400293C6E /* Build configuration list for PBXProject "GraphCKDemo" */ = {
+		156209F92E6FFCF400293C6E /* Build configuration list for PBXProject "GraphEvoDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				15620A072E6FFCF500293C6E /* Debug */,
@@ -463,7 +376,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		15620A092E6FFCF500293C6E /* Build configuration list for PBXNativeTarget "GraphCKDemo" */ = {
+		15620A092E6FFCF500293C6E /* Build configuration list for PBXNativeTarget "GraphEvoDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				15620A0A2E6FFCF500293C6E /* Debug */,
@@ -472,23 +385,18 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		A900000B2E7A000100293C6E /* Build configuration list for PBXNativeTarget "GraphEvoTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A90000092E7A000100293C6E /* Debug */,
-				A900000A2E7A000100293C6E /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		15620A132E7000E900293C6E /* XCLocalSwiftPackageReference "../../GraphCK" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../GraphCK;
+/* Begin XCRemoteSwiftPackageReference section */
+		15620A132E7000E900293C6E /* XCRemoteSwiftPackageReference "GraphEvo" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bbruno84/GraphEvo.git";
+			requirement = {
+				branch = "release/1.0.0";
+				kind = branch;
+			};
 		};
-/* End XCLocalSwiftPackageReference section */
+/* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		15620A0E2E6FFF1B00293C6E /* GraphEvo */ = {
@@ -496,10 +404,6 @@
 			productName = GraphEvo;
 		};
 		15620A142E7000E900293C6E /* GraphEvo */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = GraphEvo;
-		};
-		A90000022E7A000100293C6E /* GraphEvo */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GraphEvo;
 		};

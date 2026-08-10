@@ -1,6 +1,6 @@
 //
 //  GraphProvider.swift
-//  GraphCKDemo
+//  GraphEvoDemo
 //
 //  Created by Valerio Buriani on 09/09/25.
 //
@@ -10,7 +10,7 @@ import Foundation
 import GraphEvo
 
 extension Notification.Name {
-    static let graphProviderStateDidChange = Notification.Name("GraphCKDemo.graphProviderStateDidChange")
+    static let graphProviderStateDidChange = Notification.Name("GraphEvoDemo.graphProviderStateDidChange")
 }
 
 final class GraphProvider: NSObject, GraphCloudStatusDelegate {
@@ -24,7 +24,7 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate {
     private override init() {
         // Must match the container enabled in entitlements and the Developer
         // Portal. Xcode/account selects the CloudKit environment.
-        Graph.cloudKitContainerIdentifier = "iCloud.com.valerioburiani.GraphCKDemo"
+        Graph.cloudKitContainerIdentifier = "iCloud.com.valerioburiani.GraphEvoDemo"
 
         var configuration = GraphStoreConfiguration()
         configuration.name = "Main"
@@ -39,11 +39,11 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate {
             case .success:
                 self.readiness = .ready
                 self.lastError = nil
-                print("✅ GraphCKDemo graph ready: \(self.graph.location.path)")
+                print("✅ GraphEvoDemo graph ready: \(self.graph.location.path)")
             case .failure(let error):
                 self.readiness = .failed(error)
                 self.lastError = error
-                print("❌ GraphCKDemo graph not ready: \(error.localizedDescription)")
+                print("❌ GraphEvoDemo graph not ready: \(error.localizedDescription)")
             }
             self.publishStateChange()
         }
@@ -56,7 +56,7 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate {
 
     func graphIfReady() -> Graph? {
         guard isReady else {
-            print("⏳ GraphCKDemo: graph is not ready yet")
+            print("⏳ GraphEvoDemo: graph is not ready yet")
             return nil
         }
         return graph
@@ -65,7 +65,7 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate {
     func graph(_ graph: Graph, iCloudStatusChanged status: GraphCloudStatus) {
         cloudStatus = status
         let description = cloudStatusDescription()
-        print("☁️ GraphCKDemo \(description)")
+            print("☁️ GraphEvoDemo \(description)")
         publishStateChange()
     }
 
