@@ -6,6 +6,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [V01 T0 mirroring control](v01-control.md)
 - [Framework laboratory](framework-laboratory.md)
 - [GraphEvo feature coverage](graph-evo-coverage.md)
 

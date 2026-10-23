@@ -15,6 +15,7 @@ extension Notification.Name {
 
 final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegate {
     
+    static private(set) var wasInitialized = false
     static let shared = GraphProvider()
     private(set) var graph: Graph
     private(set) var readiness: GraphReadiness
@@ -23,6 +24,7 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegat
     private(set) var lastEventDescription: String?
 
     private override init() {
+        Self.wasInitialized = true
         // Must match the container enabled in entitlements and the Developer
         // Portal. Xcode/account selects the CloudKit environment.
         let configuredContainer = Bundle.main.object(forInfoDictionaryKey: "GraphEvoDemoCloudKitContainer") as? String ?? ""

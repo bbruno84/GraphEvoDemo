@@ -130,7 +130,7 @@ final class LaboratoryTests: XCTestCase {
         XCTAssertNotNil(laboratory)
         laboratory?.loadViewIfNeeded()
         if let laboratory {
-            for row in 3..<11 {
+            for row in 4..<11 {
                 let cell = laboratory.tableView(laboratory.tableView, cellForRowAt: IndexPath(row: row, section: 0))
                 XCTAssertTrue(cell.detailTextLabel?.text?.hasPrefix("Not run") == true)
             }

@@ -24,7 +24,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         print("✅ SceneDelegate started")
 
         let window = UIWindow(windowScene: windowScene)
-        let tabBarController = UINavigationController(rootViewController: LaunchViewController(style: .insetGrouped))
+        let root: UIViewController
+        if let request = V01LaunchRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V01ViewController(automaticRequest: request)
+        } else {
+            root = LaunchViewController(style: .insetGrouped)
+        }
+        let tabBarController = UINavigationController(rootViewController: root)
         window.rootViewController = tabBarController
         self.window = window
         window.makeKeyAndVisible()

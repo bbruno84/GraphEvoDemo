@@ -133,8 +133,11 @@ it from the launch screen or laboratory. `LaboratorySession` owns the independen
 local harness lifecycle and evidence. Direct Core Data fixtures are permitted
 only inside this explicit framework-verification boundary.
 
-Only V00-local-harness is implemented. V01–V08 remain Not run until explicitly
-implemented and verified in later work. Keep direct framework evidence distinct
+V00-local-harness and the V01 T0 writer/reader instrumentation are implemented.
+V01 instrumentation is not proof of an executed/passed control. Same-device
+recovery remains preliminary; T0 requires independent devices on the same
+account. T1–T5 and V02–V08 remain gated/unimplemented. See
+[the V01 guide](docs/features/v01-control.md) for execution and evidence rules. Keep direct framework evidence distinct
 from GraphEvo integration, and local save completion distinct from cloud sync.
 Keep temporary stores within the laboratory namespace, detach stores before
 explicit cleanup, and retain reports. See

@@ -19,7 +19,9 @@ operational guidance for the demo application.
 ## Framework laboratory and local configuration
 
 The launch screen offers the existing v1 demo and a separate framework
-laboratory. Only the V00 local harness check runs; V01–V08 remain unimplemented.
+laboratory. V00 checks the local harness; [V01 T0 instrumentation](docs/features/v01-control.md)
+provides separate cloud writer/reader stages with explicit prerequisites.
+Topology comparisons and V02–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.
 

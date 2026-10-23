@@ -45,7 +45,9 @@ final class LaboratoryViewController: UITableViewController {
         default:
             let experiment = LaboratoryExperiment.planned[indexPath.row - 3]
             cell.textLabel?.text = "\(experiment.id) — \(experiment.title)"
-            cell.detailTextLabel?.text = "Not run · implementation and framework/integration boundary pending"
+            cell.detailTextLabel?.text = experiment.id == "V01"
+                ? "T0 writer/reader control · two devices; same-device recovery is preliminary. Tap to configure."
+                : "Not run · implementation and framework/integration boundary pending"
             cell.selectionStyle = .none
         }
         if indexPath.row < 3 { cell.accessibilityTraits.insert(.button) }
@@ -55,6 +57,7 @@ final class LaboratoryViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         switch indexPath.row {
+        case 3: navigationController?.pushViewController(V01ViewController(), animated: true)
         case 0: Task { await session.runLocalCheck() }
         case 1:
             let alert = UIAlertController(title: "Remove laboratory stores?", message: "Only local disposable laboratory stores are removed. JSON reports remain available.", preferredStyle: .alert)

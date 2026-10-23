@@ -9,8 +9,10 @@ choose only the laboratory when collecting isolated framework evidence.
 
 ## Current scope
 
-Only **V00 — Local harness check** is executable. V01–V08 are catalog entries
-marked **Not run**; they have no experiment implementation or stored conclusions.
+**V00 — Local harness check** remains the local preparation check. The separate
+[V01 T0 control](v01-control.md) now has explicit writer/reader instrumentation;
+its results must be collected and reviewed separately. V02–V08 remain catalog
+entries marked Not run; V01 topology comparisons T1–T5 are not implemented.
 This preparation does not choose a cloud topology, application model protocol,
 or future GraphEvo API. No CloudKit container or remote resource is opened by
 the harness.
@@ -114,7 +116,8 @@ CODE_SIGN_ENTITLEMENTS = GraphEvoDemo/GraphEvoDemo.entitlements
 `GraphProvider` reads the container from the built Info.plist. Entitlements use
 the same setting. Configure signing, Developer Portal capabilities, test target
 signing if needed, and the CloudKit Development environment with resources you
-own. This file enables v1 cloud diagnostics only: it does not enable V01–V08.
+own. These settings configure the v1 cloud demo; V01 additionally requires the
+explicit preflight confirmation and separate entry described in its guide.
 No real account or resource is supplied by this repository. Never use production
 stores or containers for experiments. Check the resolved build settings before
 device testing.
@@ -172,5 +175,5 @@ cross-account CloudKit verification, which remains future work.
   prerequisites for later cloud verification. Simulator passes prove no cloud
   topology, sharing behavior, performance budget or v2 contract.
 
-The next step is a separately scoped V01 experiment plan with explicit resources,
-expected observations and cleanup; this preparation is not its execution.
+V01 control execution is governed by the separate guide; V00 outcomes do not
+satisfy its cloud prerequisites or establish any topology result.
