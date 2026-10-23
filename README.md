@@ -23,7 +23,9 @@ laboratory. V00 checks the local harness; [V01 T0 instrumentation](docs/features
 provides separate cloud writer/reader stages with explicit prerequisites.
 [T1–T2 stages](docs/features/v01-two-stores.md) instrument two stores and a fresh
 peer. The tested T1 cloud configuration was natively rejected; a preflight now
-prevents repeating it and T2 was not run. T3–T5 and V02–V08 remain unimplemented.
+prevents repeating it and T2 was not run. Separate [T5 instrumentation](docs/features/v01-independent-owners.md)
+uses distinct one-store owners and a dedicated peer, pending hardware evidence.
+T3–T4 and V02–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.
 

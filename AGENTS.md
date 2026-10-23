@@ -139,8 +139,11 @@ recovery remains preliminary; T0 requires independent devices on the same
 account. T1–T2 are separately instrumented; they require reviewed T0 evidence
 and explicit trial authorization. The exact T1 cloud configuration was natively
 rejected; preserve that evidence and its preflight guard, do not bypass it or
-reinterpret a preflight result as another native trial. T2 was not run. T3–T5
-and V02–V08 remain unimplemented. See
+reinterpret a preflight result as another native trial. T2 was not run. Separate
+T5 instrumentation retains two distinct one-store owners and a dedicated peer;
+review code/tests before hardware execution. Local/injected passes are not
+cloud evidence. See the [T5 guide](docs/features/v01-independent-owners.md).
+T3–T4 and V02–V08 remain unimplemented. See
 [the V01 guide](docs/features/v01-control.md) for execution and evidence rules. Keep direct framework evidence distinct
 from GraphEvo integration, and local save completion distinct from cloud sync.
 Keep temporary stores within the laboratory namespace, detach stores before

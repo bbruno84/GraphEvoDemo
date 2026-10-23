@@ -37,7 +37,7 @@ final class V01ViewController: UIViewController {
         title = "V01 — Framework trials"
         view.backgroundColor = .systemBackground
         let warning = UILabel()
-        warning.text = "Direct frameworks, same account. T0: one-store control. T1: two-store writer. T2: fresh peer reads the whole run. T1 was natively rejected; a preflight now prevents repeating that crash. T2 was not run. No T3–T5 or wipe. One stage per process."
+        warning.text = "Direct frameworks, same account. T0: control. T1: rejected and preflight protected; T2 not run. T5: two distinct one-store owners and a dedicated fresh peer. No T3–T4 or wipe. One stage per process."
         warning.numberOfLines = 0
         runIDField.borderStyle = .roundedRect
         runIDField.placeholder = "Transfer the writer run UUID to the reader"
@@ -61,10 +61,16 @@ final class V01ViewController: UIViewController {
         peer.setTitle("T2: not run (writer configuration rejected)", for: .normal)
         peer.isEnabled = false
         peer.addTarget(self, action: #selector(startT2), for: .touchUpInside)
+        let independentWriter = UIButton(type: .system)
+        independentWriter.setTitle("T5: two independent one-store owners", for: .normal)
+        independentWriter.addTarget(self, action: #selector(startT5Writer), for: .touchUpInside)
+        let independentReader = UIButton(type: .system)
+        independentReader.setTitle("T5: fresh peer (no inserts or graph filter)", for: .normal)
+        independentReader.addTarget(self, action: #selector(startT5Reader), for: .touchUpInside)
         output.isEditable = false
         output.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
         output.text = session.readableReport
-        let stack = UIStackView(arrangedSubviews: [warning, runIDField, confirmationRow, writer, reader, topologyWriter, peer, output])
+        let stack = UIStackView(arrangedSubviews: [warning, runIDField, confirmationRow, writer, reader, topologyWriter, peer, independentWriter, independentReader, output])
         stack.axis = .vertical
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -100,6 +106,8 @@ final class V01ViewController: UIViewController {
 
     @objc private func startT1() { start(role: "t1-writer", window: 120) }
     @objc private func startT2() { start(role: "t2-reader", window: 120) }
+    @objc private func startT5Writer() { start(role: "t5-writer", window: 120) }
+    @objc private func startT5Reader() { start(role: "t5-reader", window: 120) }
 
     @objc private func startWriter() { start(role: "writer", window: 120) }
     @objc private func startReader() { start(role: "reader", window: 120) }

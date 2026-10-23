@@ -38,6 +38,7 @@ struct V01NativeEvent: Codable {
     let succeeded: Bool
     let storeIdentifier: String
     let error: String?
+    var ownerKey: String? = nil
 }
 
 func v01ErrorCode(_ error: Error) -> String {

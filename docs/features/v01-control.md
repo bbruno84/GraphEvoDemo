@@ -4,7 +4,8 @@ This is direct `NSPersistentCloudKitContainer` instrumentation, separate from
 V00's local harness and the normal GraphProvider. It implements a **control**,
 not itself a comparison of cloud graph separation or a GraphEvo 2 topology.
 Separate [T1–T2 instrumentation](v01-two-stores.md) now extends the laboratory;
-T3–T5 remain unimplemented. A same-device restart/reader run is a preliminary check and
+T3–T4 remain unimplemented; separate [T5 instrumentation](v01-independent-owners.md)
+uses distinct one-store owners and a dedicated peer. A same-device restart/reader run is a preliminary check and
 never satisfies T0's independent-device prerequisite.
 
 ## Preconditions
@@ -126,8 +127,8 @@ suites remain distinct and must continue passing.
 Hardware outcomes belong in a separate evidence record, with source state,
 OS/device, signed environment verification, runID, timestamps, configuration,
 actual rows/mappings/events and cleanup status. Do not describe this guide or a
-successful build/mock test as an executed or passed T0. T1–T2 require reviewed T0 evidence and a separately authorized run; T3–T5
-remain unimplemented.
+successful build/mock test as an executed or passed T0. T1–T2 require reviewed T0 evidence and a separately authorized run. T5 has
+separate instrumentation/review; T3–T4 remain unimplemented.
 
 Apple's [TN3164](https://developer.apple.com/documentation/technotes/tn3164-debugging-the-synchronization-of-nspersistentcloudkitcontainer)
 explains system-controlled mirroring timing and the multiple-owner hazard.

@@ -12,7 +12,8 @@ This adds a bounded topology trial to the [V01 control](v01-control.md).
 The [observed T0 control](../results/v01-t0-2026-10-23.md) established the
 prerequisite for the authorized physical-device run. T1/T2 instrumentation and
 local tests are not themselves evidence of cloud separation or a v2 decision.
-T3–T5 remain unimplemented and must not be started by these roles.
+T3–T4 remain unimplemented. Separately authorized [T5 instrumentation](v01-independent-owners.md)
+uses distinct one-store owners; it does not reinterpret this rejected T1 setup.
 
 ## Exact configuration
 

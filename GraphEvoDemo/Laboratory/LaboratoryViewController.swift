@@ -46,7 +46,7 @@ final class LaboratoryViewController: UITableViewController {
             let experiment = LaboratoryExperiment.planned[indexPath.row - 3]
             cell.textLabel?.text = "\(experiment.id) — \(experiment.title)"
             cell.detailTextLabel?.text = experiment.id == "V01"
-                ? "T0 observed; T1 natively rejected (preflight protected); T2 not run. No T3–T5."
+                ? "T0 observed; T1 rejected and protected; T2 not run. T5: independent one-store owners and fresh peer."
                 : "Not run · implementation and framework/integration boundary pending"
             cell.selectionStyle = .none
         }

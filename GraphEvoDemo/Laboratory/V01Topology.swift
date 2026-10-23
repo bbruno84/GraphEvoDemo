@@ -11,6 +11,7 @@ struct V01StoreLoad: Codable {
     let error: String?
     var storeIdentifier: String? = nil
     var localFile: String? = nil
+    var ownerKey: String? = nil
 }
 
 /// Serial callback bookkeeping, independent of callback order. No continuation is resumed twice.
