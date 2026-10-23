@@ -1,3 +1,11 @@
+> Hardware outcome: the exact T1 configuration was rejected by a native
+> `NSInvalidArgumentException`; T2 was not run. See the
+> [retained result](../results/v01-t1-2026-10-23.md). A subsequent application
+> preflight now prevents repeating the known crash before mirror-owner creation.
+> The instructions below describe the recorded trial, not a currently supported
+> way to open those two cloud stores. The currently protected T1 entry returns
+> `preflightRejected` and never constructs its mirror owner.
+
 # V01 T1–T2 — two stores and a fresh peer
 
 This adds a bounded topology trial to the [V01 control](v01-control.md).
@@ -40,7 +48,10 @@ local filename and available store identifier, and resumes only once. Callback
 order is irrelevant; an error in one store does not release the owner while
 the other configured callback is still outstanding. Partial-open results are
 retained and any successfully loaded stores are detached at the stage boundary.
-A native rejection is an experiment outcome: do not work around it with another
+A native callback error is an experiment outcome. Objective-C NSException is
+a separate process-termination path that Swift do/catch cannot handle; it can
+leave only a Running checkpoint, as observed in the retained hardware result.
+The callback tracker is not exception recovery. For any rejection: do not work around it with another
 zone, model or local fallback.
 
 The report retains:
@@ -63,6 +74,7 @@ with an explicit dropped count.
 
 | Classification | Meaning and limit |
 |---|---|
+| `preflightRejected` | The application rejects the already-observed duplicate resource/scope pair before mirror-owner construction. This is not a new native trial. |
 | `openingFailed` | A configured store failed its native load; inspect partial results. No fallback or topology success is claimed. |
 | `localStoresSeparated` | This sampled local A/B row distribution exactly matches explicit assignment. This is not cloud isolation. |
 | `localMixtureObserved` | A known A fixture row was observed in B or a known B row in A. Full actual snapshots remain available. |
@@ -94,7 +106,7 @@ Paths remain inside `Library/Application Support/V01Laboratory/`:
 `Stores/<runID>/t1-writer-<stageID>/A.sqlite` and `B.sqlite`,
 `Stores/<runID>/t2-reader-<stageID>/probe.sqlite`, and
 `Reports/<runID>-<role>-<stageID>.json`.
-The UI has explicit T1 and T2 buttons; T0's writer/reader roles still open one
+The UI now labels the known T1 rejection and disables the T2 button; T0's writer/reader roles still open one
 store and remain available. V00 is unchanged.
 
 After collection, end app processes explicitly. Store detachment does not prove
@@ -110,6 +122,6 @@ Seven additional focused tests exercise actual local SQLite routing and
 callback order/duplicate handling, initial-versus-later snapshots, reader
 without insert, partial opening error without fallback, and conservative
 classification of missing/mixed/unexpected rows. Together with existing suites,
-23 tests pass on Simulator. This does not execute or establish T1/T2 hardware
-behavior. Hardware results are retained in a separate sanitized result document
-once collected and compared by the coordinating chat.
+27 tests pass on Simulator, including four subsequent preflight guard tests. This does not execute or establish T1/T2 hardware
+behavior. The native T1 rejection is retained in a separate sanitized result document;
+T2 remains unexecuted and no further hardware run is implied by local tests.
