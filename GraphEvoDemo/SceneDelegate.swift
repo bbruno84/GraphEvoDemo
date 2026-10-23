@@ -25,7 +25,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         let root: UIViewController
-        if let request = V01LaunchRequest.parse(ProcessInfo.processInfo.arguments) {
+        if let request = V01OwnerOnlyShareTrial.parse(ProcessInfo.processInfo.arguments) {
+            root = V01OwnerOnlyShareViewController(request: request)
+        } else if let request = V01LaunchRequest.parse(ProcessInfo.processInfo.arguments) {
             root = V01ViewController(automaticRequest: request)
         } else {
             root = LaunchViewController(style: .insetGrouped)

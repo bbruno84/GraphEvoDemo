@@ -144,6 +144,10 @@ T5 instrumentation retains two distinct one-store owners and a dedicated peer;
 review code/tests before hardware execution. Local/injected passes are not
 cloud evidence. See the [T5 guide](docs/features/v01-independent-owners.md).
 T3–T4 and V02–V08 remain unimplemented. See
+[the T6 guide](docs/features/v01-owner-only-shares.md) for the separate CLI-only
+owner-only share trial. Keep callback assignment, share persistence, object export,
+and fresh-peer recovery distinct. T6 adds no participants or invitations and
+does not establish selective download or separate local stores. See
 [the V01 guide](docs/features/v01-control.md) for execution and evidence rules. Keep direct framework evidence distinct
 from GraphEvo integration, and local save completion distinct from cloud sync.
 Keep temporary stores within the laboratory namespace, detach stores before
