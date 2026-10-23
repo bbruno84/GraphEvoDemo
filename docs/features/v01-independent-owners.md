@@ -1,7 +1,8 @@
 # V01 T5 — independent one-store owners and a dedicated peer
 
-Status: instrumentation and local tests only. Hardware outcomes must be retained
-separately after coordinating review. This alternative topology follows the
+Status: [hardware result retained](../results/v01-t5-2026-10-23.md). Local A/B
+rows remained separate during the window, while the fresh independent peer
+recovered A+B together. The result does not establish cloud separation. This alternative topology follows the
 [observed T0 control](../results/v01-t0-2026-10-23.md) and
 [native T1 rejection](../results/v01-t1-2026-10-23.md); it does not rename T1/T2,
 weaken their preflight, or select a GraphEvo 2 architecture.

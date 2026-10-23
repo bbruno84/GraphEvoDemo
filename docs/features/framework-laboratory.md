@@ -13,7 +13,9 @@ choose only the laboratory when collecting isolated framework evidence.
 [V01 T0 control](v01-control.md) now has explicit writer/reader instrumentation;
 its results must be collected and reviewed separately. V02–V08 remain catalog
 entries marked Not run. Separate [T1–T2 stages](v01-two-stores.md) now instrument
-a two-store trial after the T0 control; T3–T5 remain unimplemented.
+a two-store trial after the T0 control; T3–T4 remain unimplemented. Separate [T5 instrumentation](v01-independent-owners.md)
+and its [observed result](../results/v01-t5-2026-10-23.md) retain the independent-owner
+trial and unified fresh-peer recovery; local writer separation was not cloud isolation.
 This preparation does not choose a cloud topology, application model protocol,
 or future GraphEvo API. No CloudKit container or remote resource is opened by
 the harness.
