@@ -206,7 +206,10 @@ final class V01Session {
             }
         } catch {
             report?.errors.append(v01ErrorCode(error))
-            if topologyTrial, opening {
+            if let preflight = error as? V01ConfigurationError {
+                report?.topologyObservation = .preflightRejected
+                report?.outcome = "Preflight rejected (not a new native trial): \(preflight.localizedDescription)"
+            } else if topologyTrial, opening {
                 report?.topologyObservation = .openingFailed
                 report?.outcome = "Opening failed: native configured-store error. Partial-open results retained; no fallback, replacement zone or retry."
             } else {
@@ -219,7 +222,10 @@ final class V01Session {
         do {
             try await owner?.close()
             owner = nil
-            report?.lifecycle = "Contexts reset, stores detached, owner reference released. Restart before another stage; no shutdown acknowledgement is inferred."
+            let preflightRejected = report?.topologyObservation == .preflightRejected
+            report?.lifecycle = preflightRejected
+                ? "Application preflight rejected before mirror-owner construction, store loading or fixture insertion. No native trial was repeated."
+                : "Contexts reset, stores detached, owner reference released. Restart before another stage; no shutdown acknowledgement is inferred."
         } catch {
             report?.errors.append("Close: \(v01ErrorCode(error))")
             report?.outcome = "Inconclusive: store detachment failed; terminate the app before further work."

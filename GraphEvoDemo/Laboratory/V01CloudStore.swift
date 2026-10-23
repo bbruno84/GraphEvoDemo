@@ -58,10 +58,17 @@ protocol V01StoreAccess: AnyObject {
 final class V01CloudStore: V01TopologyStoreAccess {
     private var container: NSPersistentContainer?
     private let localOnlyForTests: Bool
+    private let makeCloudOwner: @MainActor (NSManagedObjectModel) throws -> NSPersistentCloudKitContainer
     private(set) var loadResults: [V01StoreLoad] = []
     private var storeURLs: [String: URL] = [:]
 
-    init(localOnlyForTests: Bool = false) { self.localOnlyForTests = localOnlyForTests }
+    init(localOnlyForTests: Bool = false,
+         makeCloudOwner: @escaping @MainActor (NSManagedObjectModel) throws -> NSPersistentCloudKitContainer = {
+             NSPersistentCloudKitContainer(name: "V01Probe", managedObjectModel: $0)
+         }) {
+        self.localOnlyForTests = localOnlyForTests
+        self.makeCloudOwner = makeCloudOwner
+    }
     private var observer: NSObjectProtocol?
 
     static func makeModel() -> NSManagedObjectModel {
@@ -99,15 +106,30 @@ final class V01CloudStore: V01TopologyStoreAccess {
         }
     }
 
+    static func validateCloudDestinations(_ descriptions: [NSPersistentStoreDescription]) throws {
+        var scopesByIdentifier: [String: Set<Int>] = [:]
+        for description in descriptions {
+            guard let cloud = description.cloudKitContainerOptions else { continue }
+            let scope = cloud.databaseScope.rawValue
+            guard scopesByIdentifier[cloud.containerIdentifier, default: []].insert(scope).inserted else {
+                throw V01ConfigurationError.duplicateCloudDestination
+            }
+        }
+    }
+
     func open(stores: [V01StoreLocation], containerIdentifier: String, event: @escaping (V01NativeEvent) -> Void) async throws {
         guard !stores.isEmpty, Set(stores.map(\.key)).count == stores.count,
               Set(stores.map { $0.url.standardizedFileURL }).count == stores.count else { throw V01Error.freshPathRequired }
-        // The local test branch uses NSPersistentContainer: no mirroring owner or cloud API.
-        let owner: NSPersistentContainer = localOnlyForTests
-            ? NSPersistentContainer(name: "V01Probe", managedObjectModel: Self.makeModel())
-            : NSPersistentCloudKitContainer(name: "V01Probe", managedObjectModel: Self.makeModel())
         let descriptions = Self.descriptions(stores: stores, containerIdentifier: containerIdentifier)
         if localOnlyForTests { for description in descriptions { description.cloudKitContainerOptions = nil } }
+        // Validate before constructing an owner, not just before loading its stores.
+        try Self.validateCloudDestinations(descriptions)
+        let owner: NSPersistentContainer
+        if localOnlyForTests {
+            owner = NSPersistentContainer(name: "V01Probe", managedObjectModel: Self.makeModel())
+        } else {
+            owner = try makeCloudOwner(Self.makeModel())
+        }
         owner.persistentStoreDescriptions = descriptions
         storeURLs = Dictionary(uniqueKeysWithValues: stores.map { ($0.key, $0.url.standardizedFileURL) })
         loadResults = []

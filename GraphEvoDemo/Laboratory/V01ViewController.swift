@@ -37,7 +37,7 @@ final class V01ViewController: UIViewController {
         title = "V01 — Framework trials"
         view.backgroundColor = .systemBackground
         let warning = UILabel()
-        warning.text = "Direct frameworks, same account. T0: one-store control. T1: two-store writer. T2: fresh peer reads the whole run. T1/T2 require reviewed T0. No T3–T5 or wipe. One stage per process."
+        warning.text = "Direct frameworks, same account. T0: one-store control. T1: two-store writer. T2: fresh peer reads the whole run. T1 was natively rejected; a preflight now prevents repeating that crash. T2 was not run. No T3–T5 or wipe. One stage per process."
         warning.numberOfLines = 0
         runIDField.borderStyle = .roundedRect
         runIDField.placeholder = "Transfer the writer run UUID to the reader"
@@ -55,10 +55,11 @@ final class V01ViewController: UIViewController {
         reader.setTitle("Start fresh reader (no inserts)", for: .normal)
         reader.addTarget(self, action: #selector(startReader), for: .touchUpInside)
         let topologyWriter = UIButton(type: .system)
-        topologyWriter.setTitle("T1: two-store writer (new run)", for: .normal)
+        topologyWriter.setTitle("T1: known rejected configuration (preflight only)", for: .normal)
         topologyWriter.addTarget(self, action: #selector(startT1), for: .touchUpInside)
         let peer = UIButton(type: .system)
-        peer.setTitle("T2: fresh peer (no graph filter)", for: .normal)
+        peer.setTitle("T2: not run (writer configuration rejected)", for: .normal)
+        peer.isEnabled = false
         peer.addTarget(self, action: #selector(startT2), for: .touchUpInside)
         output.isEditable = false
         output.font = .monospacedSystemFont(ofSize: 12, weight: .regular)

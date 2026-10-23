@@ -40,6 +40,7 @@ protocol V01TopologyStoreAccess: V01StoreAccess {
 
 enum V01TopologyObservation: String, Codable {
     case openingFailed
+    case preflightRejected
     case localStoresSeparated
     case localMixtureObserved
     case unifiedPeerReplicaObserved
@@ -62,5 +63,15 @@ enum V01TopologyObservation: String, Codable {
 
     static func exact(_ actual: [V01Row], _ expected: [V01Row]) -> Bool {
         actual.sorted { $0.sortKey < $1.sortKey } == expected.sorted { $0.sortKey < $1.sortKey }
+    }
+}
+
+/// Prevents repeating the native T1 NSInvalidArgumentException already retained in evidence.
+/// This is an application preflight, not another Apple framework experiment.
+enum V01ConfigurationError: LocalizedError {
+    case duplicateCloudDestination
+
+    var errorDescription: String? {
+        "Known unsupported T1 configuration: the same CloudKit container and database scope are assigned to multiple stores. Preflight rejected before mirror-owner creation; see the recorded T1 native exception."
     }
 }
