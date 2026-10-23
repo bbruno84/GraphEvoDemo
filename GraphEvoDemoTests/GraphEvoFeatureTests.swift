@@ -80,7 +80,7 @@ final class GraphEvoFeatureTests: XCTestCase {
 
     private func makeInMemoryGraph() throws -> Graph {
         var configuration = GraphStoreConfiguration()
-        configuration.name = "GraphEvoDemoTests"
+        configuration.name = "GraphEvoDemoTests-\(UUID().uuidString)"
         configuration.backend = .inMemory
 
         let graph = Graph(configuration: configuration)

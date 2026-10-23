@@ -46,9 +46,16 @@ final class MainTabBarController: UITabBarController {
         let devVC = DeveloperViewController()
         devVC.tabBarItem = UITabBarItem(title: "Developer", image: devImage, tag: 1)
 
+        notesVC.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Menu", style: .plain, target: self, action: #selector(returnToMenu))
+        devVC.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Menu", style: .plain, target: self, action: #selector(returnToMenu))
+
         viewControllers = [
             UINavigationController(rootViewController: notesVC),
             UINavigationController(rootViewController: devVC)
         ]
+    }
+
+    @objc private func returnToMenu() {
+        dismiss(animated: true)
     }
 }

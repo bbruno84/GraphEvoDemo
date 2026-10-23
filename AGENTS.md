@@ -124,3 +124,22 @@ Use neutral placeholders such as `com.example.GraphEvoDemo`,
 `iCloud.com.example.GraphEvoDemo`, and `YOUR_TEAM_ID`. If a feature requires
 account-specific configuration, document every replacement point in
 `README.md` and the relevant feature guide.
+
+## Framework laboratory
+
+The launch screen separates the v1 demo from the framework laboratory.
+`GraphProvider` remains the gateway for normal GraphEvo behavior; do not initialize
+it from the launch screen or laboratory. `LaboratorySession` owns the independent
+local harness lifecycle and evidence. Direct Core Data fixtures are permitted
+only inside this explicit framework-verification boundary.
+
+Only V00-local-harness is implemented. V01–V08 remain Not run until explicitly
+implemented and verified in later work. Keep direct framework evidence distinct
+from GraphEvo integration, and local save completion distinct from cloud sync.
+Keep temporary stores within the laboratory namespace, detach stores before
+explicit cleanup, and retain reports. See
+[the laboratory guide](docs/features/framework-laboratory.md).
+
+Account-specific Development settings belong in ignored
+`Configuration/Local.xcconfig`, never tracked source, project or entitlement
+files. The default app configuration is local and has no CloudKit identifier.

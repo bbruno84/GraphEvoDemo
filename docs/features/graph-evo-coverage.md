@@ -131,7 +131,7 @@ Operational notes:
 
 ## 5. Watchers and local changes
 
-`NotesViewController` observes `Note` entities and reloads the table when a
+`NotesViewModel` observes `Note` entities and reloads the table when a
 node changes. A watcher is initially stopped, so the demo explicitly resumes
 it after assigning its delegate:
 
@@ -150,29 +150,18 @@ needed. Call `pause()` when observation should be suspended.
 
 ## 6. CloudKit and diagnostics
 
-### Configuration placeholders
+### Local Development configuration
 
-The repository deliberately uses neutral placeholders so it does not expose a
-developer's Apple account or CloudKit resources:
+The app starts with a choice between the v1 demo and the isolated laboratory.
+`GraphProvider` is created only when the v1 demo opens. The default configuration
+is local; account-specific CloudKit settings belong in ignored
+`Configuration/Local.xcconfig`. See the [laboratory guide](framework-laboratory.md)
+for the complete configuration and Development resource requirements.
 
-```text
-Bundle identifier:       com.example.GraphEvoDemo
-Test bundle identifier:  com.example.GraphEvoDemoTests
-CloudKit container:      iCloud.com.example.GraphEvoDemo
-Developer team:          YOUR_TEAM_ID
-```
-
-Replace these values in the Xcode project, `Info.plist`, entitlements, and
-`GraphProvider.swift` before enabling real CloudKit synchronization. The app
-bundle identifier, entitlements, container, and signing team must be aligned
-with the same Apple Developer account.
-
-CloudKit is configured in `GraphProvider` and enabled through the app
-entitlements. The provider implements:
-
-- `GraphCloudStatusDelegate` for account availability;
-- `GraphEventDelegate` for GraphEvo state, warning, and failure events;
-- `GraphCloudSyncDelegate` for completed CloudKit imports.
+The provider implements `GraphCloudStatusDelegate` for account availability and
+`GraphEventDelegate` for diagnostics. Finished imports arrive through
+`GraphEvent.stateChanged(.cloudImport(.finished))`. An import event does not certify
+complete synchronization or graph completeness.
 
 After the store becomes ready, the provider calls:
 

@@ -6,6 +6,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [Framework laboratory](framework-laboratory.md)
 - [GraphEvo feature coverage](graph-evo-coverage.md)
 
 ## Scope

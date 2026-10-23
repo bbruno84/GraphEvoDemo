@@ -16,25 +16,17 @@ Feature documentation is available in [docs/features](docs/features/README.md).
 The documentation combines implementation notes, usage examples, and
 operational guidance for the demo application.
 
-## Project configuration
+## Framework laboratory and local configuration
 
-This repository contains only neutral placeholders for application identity and
-CloudKit configuration. Before running the app with synchronization enabled,
-replace the following values with identifiers owned by your Apple Developer
-account:
+The launch screen offers the existing v1 demo and a separate framework
+laboratory. Only the V00 local harness check runs; V01–V08 remain unimplemented.
+See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
+fixtures, reports, explicit cleanup, evidence limitations and tests.
 
-- `com.example.GraphEvoDemo`: the app bundle identifier in the Xcode project
-  and `GraphEvoDemo/Info.plist`;
-- `com.example.GraphEvoDemoTests`: the unit-test bundle identifier in the Xcode
-  project;
-- `iCloud.com.example.GraphEvoDemo`: the CloudKit container identifier in
-  `GraphEvoDemo/GraphEvoDemo.entitlements` and `GraphEvoDemo/GraphProvider.swift`;
-- `YOUR_TEAM_ID`: the Apple Developer team identifier in the Xcode project.
-
-The bundle identifier, CloudKit container, entitlements, and Developer Portal
-configuration must belong to the same Apple Developer account. Select the
-correct team and CloudKit environment in Xcode before testing synchronization.
-The local in-memory and unit-test flows do not require a real CloudKit
-container.
+The app defaults to local persistence, without CloudKit entitlements or a
+container. Personal Development settings belong in ignored
+`Configuration/Local.xcconfig`; the guide lists each setting needed for the
+existing v1 cloud demo. Keep tracked files free of personal identifiers and
+use dedicated Development resources, never production resources.
 
 The app is distributed under the MIT License. See [LICENSE.md](LICENSE.md). GraphEvo is maintained in its own repository and remains subject to its own license and notices.
