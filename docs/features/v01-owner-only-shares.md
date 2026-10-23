@@ -41,8 +41,8 @@ Launch the writer with:
 --v01-role t6-writer --v01-run-id <NEW-UUID> --v01-window 120 --v01-development-verified
 ```
 
-After reviewing the writer report, terminate the reader app and launch the same
-reviewed build on the peer using the same UUID:
+After reviewing the writer report, terminate the writer app. Then launch a fresh
+reader process using the same reviewed build on the peer and the same UUID:
 
 ```text
 --v01-role t6-reader --v01-run-id <SAME-UUID> --v01-window 120 --v01-development-verified
