@@ -6,6 +6,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [V01 T1–T2 two-store trial](v01-two-stores.md)
 - [V01 T0 mirroring control](v01-control.md)
 - [Framework laboratory](framework-laboratory.md)
 - [GraphEvo feature coverage](graph-evo-coverage.md)

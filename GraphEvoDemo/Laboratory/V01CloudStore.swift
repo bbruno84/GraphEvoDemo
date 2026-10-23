@@ -53,10 +53,15 @@ protocol V01StoreAccess: AnyObject {
     func close() async throws
 }
 
-/// One owner for one SQLite file. This code never writes CKRecords directly.
+/// One owner for the explicitly configured SQLite files. This code never writes CKRecords directly.
 @MainActor
-final class V01CloudStore: V01StoreAccess {
-    private var container: NSPersistentCloudKitContainer?
+final class V01CloudStore: V01TopologyStoreAccess {
+    private var container: NSPersistentContainer?
+    private let localOnlyForTests: Bool
+    private(set) var loadResults: [V01StoreLoad] = []
+    private var storeURLs: [String: URL] = [:]
+
+    init(localOnlyForTests: Bool = false) { self.localOnlyForTests = localOnlyForTests }
     private var observer: NSObjectProtocol?
 
     static func makeModel() -> NSManagedObjectModel {
@@ -76,17 +81,36 @@ final class V01CloudStore: V01StoreAccess {
     }
 
     func open(at url: URL, containerIdentifier: String, event: @escaping (V01NativeEvent) -> Void) async throws {
-        let owner = NSPersistentCloudKitContainer(name: "V01Probe", managedObjectModel: Self.makeModel())
-        let description = NSPersistentStoreDescription(url: url)
-        description.shouldAddStoreAsynchronously = true
-        let cloud = NSPersistentCloudKitContainerOptions(containerIdentifier: containerIdentifier)
-        cloud.databaseScope = .private
-        description.cloudKitContainerOptions = cloud
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-        description.shouldMigrateStoreAutomatically = false
-        description.shouldInferMappingModelAutomatically = false
-        owner.persistentStoreDescriptions = [description]
+        try await open(stores: [V01StoreLocation(key: "main", url: url)], containerIdentifier: containerIdentifier, event: event)
+    }
+
+    static func descriptions(stores: [V01StoreLocation], containerIdentifier: String) -> [NSPersistentStoreDescription] {
+        stores.map { location in
+            let description = NSPersistentStoreDescription(url: location.url)
+            description.shouldAddStoreAsynchronously = true
+            let cloud = NSPersistentCloudKitContainerOptions(containerIdentifier: containerIdentifier)
+            cloud.databaseScope = .private
+            description.cloudKitContainerOptions = cloud
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            description.shouldMigrateStoreAutomatically = false
+            description.shouldInferMappingModelAutomatically = false
+            return description
+        }
+    }
+
+    func open(stores: [V01StoreLocation], containerIdentifier: String, event: @escaping (V01NativeEvent) -> Void) async throws {
+        guard !stores.isEmpty, Set(stores.map(\.key)).count == stores.count,
+              Set(stores.map { $0.url.standardizedFileURL }).count == stores.count else { throw V01Error.freshPathRequired }
+        // The local test branch uses NSPersistentContainer: no mirroring owner or cloud API.
+        let owner: NSPersistentContainer = localOnlyForTests
+            ? NSPersistentContainer(name: "V01Probe", managedObjectModel: Self.makeModel())
+            : NSPersistentCloudKitContainer(name: "V01Probe", managedObjectModel: Self.makeModel())
+        let descriptions = Self.descriptions(stores: stores, containerIdentifier: containerIdentifier)
+        if localOnlyForTests { for description in descriptions { description.cloudKitContainerOptions = nil } }
+        owner.persistentStoreDescriptions = descriptions
+        storeURLs = Dictionary(uniqueKeysWithValues: stores.map { ($0.key, $0.url.standardizedFileURL) })
+        loadResults = []
         container = owner
         observer = NotificationCenter.default.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification,
                                                          object: owner, queue: .main) { notification in
@@ -105,20 +129,33 @@ final class V01CloudStore: V01StoreAccess {
                                          error: native.error.map(v01ErrorCode))
             Task { @MainActor in event(snapshot) }
         }
+        let tracker = V01StoreLoadTracker(keys: stores.map(\.key))
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            owner.loadPersistentStores { _, error in
-                if let error { continuation.resume(throwing: error) }
-                else { continuation.resume() }
+            owner.loadPersistentStores { description, error in
+                // loadPersistentStores calls back once per description, potentially off main.
+                Task { @MainActor in
+                    guard let key = stores.first(where: { $0.url.standardizedFileURL == description.url?.standardizedFileURL })?.key else { return }
+                    let loadedStore = owner.persistentStoreCoordinator.persistentStores.first { $0.url?.standardizedFileURL == description.url?.standardizedFileURL }
+                    let complete = tracker.record(key: key, error: error, storeIdentifier: loadedStore?.identifier,
+                                                  localFile: description.url?.lastPathComponent)
+                    self.loadResults = tracker.results.values.sorted { $0.storeKey < $1.storeKey }
+                    if complete {
+                        if let error = tracker.firstError { continuation.resume(throwing: error) }
+                        else { continuation.resume() }
+                    }
+                }
             }
         }
     }
 
-    func insert(_ rows: [V01Row]) async throws {
-        guard let container else { throw V01Error.notOpen }
+    func insert(_ rows: [V01Row]) async throws { try await insert(rows, into: "main") }
+
+    func insert(_ rows: [V01Row], into storeKey: String) async throws {
+        guard let url = storeURLs[storeKey], let container else { throw V01Error.notOpen }
         let context = container.newBackgroundContext()
         try await context.perform {
             defer { context.reset() }
-            guard let store = container.persistentStoreCoordinator.persistentStores.first else { throw V01Error.notOpen }
+            guard let store = container.persistentStoreCoordinator.persistentStores.first(where: { $0.url?.standardizedFileURL == url }) else { throw V01Error.notOpen }
             for row in rows {
                 let item = NSEntityDescription.insertNewObject(forEntityName: "V01ProbeItem", into: context)
                 context.assign(item, to: store)
@@ -131,14 +168,17 @@ final class V01CloudStore: V01StoreAccess {
         }
     }
 
-    func snapshot(runID: UUID) async throws -> V01Snapshot {
-        guard let container else { throw V01Error.notOpen }
+    func snapshot(runID: UUID) async throws -> V01Snapshot { try await snapshot(runID: runID, in: "main") }
+
+    func snapshot(runID: UUID, in storeKey: String) async throws -> V01Snapshot {
+        guard let url = storeURLs[storeKey], let container else { throw V01Error.notOpen }
         let context = container.newBackgroundContext()
         return try await context.perform {
             defer { context.reset() }
             let request = NSFetchRequest<NSManagedObject>(entityName: "V01ProbeItem")
             request.predicate = NSPredicate(format: "runID == %@", runID.uuidString)
-            request.affectedStores = container.persistentStoreCoordinator.persistentStores
+            guard let store = container.persistentStoreCoordinator.persistentStores.first(where: { $0.url?.standardizedFileURL == url }) else { throw V01Error.notOpen }
+            request.affectedStores = [store]
             let objects = try context.fetch(request)
             let rows = objects.map { item in
                 V01Row(runID: item.value(forKey: "runID") as? String,
@@ -147,12 +187,12 @@ final class V01CloudStore: V01StoreAccess {
             }.sorted { $0.sortKey < $1.sortKey }
             let mappings = objects.map { item in
                 // Optional observational lookup only: no save/permanent-ID request/export trigger.
-                let record = container.recordID(for: item.objectID)
+                let record = (container as? NSPersistentCloudKitContainer)?.recordID(for: item.objectID)
                 return V01Mapping(itemID: item.value(forKey: "itemID") as? String,
                                   recordName: record?.recordName, zoneName: record?.zoneID.zoneName)
             }
             return V01Snapshot(rows: rows, mappings: mappings,
-                               storeIdentifier: container.persistentStoreCoordinator.persistentStores.first?.identifier)
+                               storeIdentifier: store.identifier)
         }
     }
 

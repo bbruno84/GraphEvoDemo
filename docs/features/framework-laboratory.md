@@ -12,7 +12,8 @@ choose only the laboratory when collecting isolated framework evidence.
 **V00 — Local harness check** remains the local preparation check. The separate
 [V01 T0 control](v01-control.md) now has explicit writer/reader instrumentation;
 its results must be collected and reviewed separately. V02–V08 remain catalog
-entries marked Not run; V01 topology comparisons T1–T5 are not implemented.
+entries marked Not run. Separate [T1–T2 stages](v01-two-stores.md) now instrument
+a two-store trial after the T0 control; T3–T5 remain unimplemented.
 This preparation does not choose a cloud topology, application model protocol,
 or future GraphEvo API. No CloudKit container or remote resource is opened by
 the harness.

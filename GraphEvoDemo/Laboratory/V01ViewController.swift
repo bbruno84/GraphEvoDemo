@@ -11,7 +11,7 @@ struct V01LaunchRequest {
             return arguments[index + 1]
         }
         guard arguments.contains("--v01-development-verified"),
-              let role = value("--v01-role"), ["writer", "reader"].contains(role),
+              let role = value("--v01-role"), V01Session.validRoles.contains(role),
               let rawID = value("--v01-run-id"), let runID = UUID(uuidString: rawID),
               let window = Int(value("--v01-window") ?? "120"), (1...600).contains(window) else { return nil }
         return V01LaunchRequest(role: role, runID: runID, window: window)
@@ -34,10 +34,10 @@ final class V01ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "V01 — T0 control"
+        title = "V01 — Framework trials"
         view.backgroundColor = .systemBackground
         let warning = UILabel()
-        warning.text = "Direct CloudKit framework control. Writer: iPhone; reader: iPad, same account. A reader on the same device is preliminary only. No T1–T5 or remote wipe. One stage per app process."
+        warning.text = "Direct frameworks, same account. T0: one-store control. T1: two-store writer. T2: fresh peer reads the whole run. T1/T2 require reviewed T0. No T3–T5 or wipe. One stage per process."
         warning.numberOfLines = 0
         runIDField.borderStyle = .roundedRect
         runIDField.placeholder = "Transfer the writer run UUID to the reader"
@@ -54,10 +54,16 @@ final class V01ViewController: UIViewController {
         let reader = UIButton(type: .system)
         reader.setTitle("Start fresh reader (no inserts)", for: .normal)
         reader.addTarget(self, action: #selector(startReader), for: .touchUpInside)
+        let topologyWriter = UIButton(type: .system)
+        topologyWriter.setTitle("T1: two-store writer (new run)", for: .normal)
+        topologyWriter.addTarget(self, action: #selector(startT1), for: .touchUpInside)
+        let peer = UIButton(type: .system)
+        peer.setTitle("T2: fresh peer (no graph filter)", for: .normal)
+        peer.addTarget(self, action: #selector(startT2), for: .touchUpInside)
         output.isEditable = false
         output.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
         output.text = session.readableReport
-        let stack = UIStackView(arrangedSubviews: [warning, runIDField, confirmationRow, writer, reader, output])
+        let stack = UIStackView(arrangedSubviews: [warning, runIDField, confirmationRow, writer, reader, topologyWriter, peer, output])
         stack.axis = .vertical
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -90,6 +96,9 @@ final class V01ViewController: UIViewController {
         if let token { session.removeObserver(token) }
         token = nil
     }
+
+    @objc private func startT1() { start(role: "t1-writer", window: 120) }
+    @objc private func startT2() { start(role: "t2-reader", window: 120) }
 
     @objc private func startWriter() { start(role: "writer", window: 120) }
     @objc private func startReader() { start(role: "reader", window: 120) }
