@@ -133,3 +133,7 @@ explains system-controlled mirroring timing and the multiple-owner hazard.
 The public mapping lookup is
 [`recordID(for:)`](https://developer.apple.com/documentation/coredata/nspersistentcloudkitcontainer/recordid(for:));
 a mapping lookup is not a server fetch.
+
+The [2026-10-23 T0 result](../results/v01-t0-2026-10-23.md) records the observed
+two-device control separately from this procedure. It does not authorize or
+report topology comparisons.
