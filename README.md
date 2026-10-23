@@ -29,6 +29,9 @@ records locally separate writer rows but full A+B recovery in one fresh peer.
 [T6 instrumentation](docs/features/v01-owner-only-shares.md) uses two disconnected
 roots and owner-only shares in one private store, with separate writer/reader CLI
 stages. Local tests do not establish a CloudKit result.
+The [T6 hardware result](docs/results/v01-t6-2026-10-23.md) is inconclusive:
+no completed share-A callback result was retained before the writer attempts ended; no reader
+stage was reached.
 T3–T4 and V02–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.

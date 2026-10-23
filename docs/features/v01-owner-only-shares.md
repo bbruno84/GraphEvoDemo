@@ -5,6 +5,11 @@ CloudKit shares. It uses one `NSPersistentCloudKitContainer`, one fresh private
 SQLite store, and the existing Development container. It does not test GraphEvo
 integration, selective download, or independent local stores.
 
+The [hardware observation](../results/v01-t6-2026-10-23.md) is inconclusive.
+Neither attempt retained a completed share-A callback result; the clean repeat was
+explicitly stopped after more than five minutes pending. No reader was launched.
+This does not establish native rejection or successful share/zone separation.
+
 The implementation is `V01OwnerOnlyShareTrial.swift`. It is CLI-only and keeps
 `GraphProvider` uninitialized. Production execution rejects Simulator; local
 XCTest exercises the model, SQLite fixture, parser, and report validation without
@@ -51,7 +56,12 @@ reader process using the same reviewed build on the peer and the same UUID:
 Each launch allocates a stage UUID and fresh SQLite path. The reader creates no
 fixture and calls neither share creation nor share persistence. Its fetch uses
 the entire run UUID without a graph filter. Windows must be 1–600 seconds;
-the default is 120. Do not reuse a process for another stage.
+the default is 120. This window bounds only snapshot sampling after store opening
+and the writer's share operations complete. It is not a timeout for opening,
+share creation, or share persistence. A pending native callback can therefore
+leave the stage unfinished beyond that window; record any external observation
+limit and explicit process termination separately. Do not reuse a process for
+another stage.
 
 ## Share operations and evidence
 
