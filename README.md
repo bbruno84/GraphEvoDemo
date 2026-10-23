@@ -32,6 +32,8 @@ stages. Local tests do not establish a CloudKit result.
 The [T6 hardware result](docs/results/v01-t6-2026-10-23.md) is inconclusive:
 no completed share-A callback result was retained before the writer attempts ended; no reader
 stage was reached.
+A later fresh attempt after reported network recovery had the same inconclusive
+outcome; the result preserves all attempts without assigning a network cause.
 T3–T4 and V02–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.

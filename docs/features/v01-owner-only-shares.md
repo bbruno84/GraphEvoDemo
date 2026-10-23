@@ -9,6 +9,10 @@ The [hardware observation](../results/v01-t6-2026-10-23.md) is inconclusive.
 Neither attempt retained a completed share-A callback result; the clean repeat was
 explicitly stopped after more than five minutes pending. No reader was launched.
 This does not establish native rejection or successful share/zone separation.
+A later repeat after operator-reported network recovery also remained
+inconclusive after more than five minutes; it reached no completed share-A result
+or reader stage. The result document preserves that follow-up separately and
+does not attribute the wait to the network.
 
 The implementation is `V01OwnerOnlyShareTrial.swift`. It is CLI-only and keeps
 `GraphProvider` uninitialized. Production execution rejects Simulator; local
