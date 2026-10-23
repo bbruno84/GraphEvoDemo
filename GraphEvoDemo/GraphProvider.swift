@@ -2,7 +2,7 @@
 //  GraphProvider.swift
 //  GraphEvoDemo
 //
-//  Created by Valerio Buriani on 09/09/25.
+//  Created by GraphEvoDemo contributors.
 //
 
 
@@ -13,18 +13,19 @@ extension Notification.Name {
     static let graphProviderStateDidChange = Notification.Name("GraphEvoDemo.graphProviderStateDidChange")
 }
 
-final class GraphProvider: NSObject, GraphCloudStatusDelegate {
+final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegate, GraphCloudSyncDelegate {
     
     static let shared = GraphProvider()
     private(set) var graph: Graph
     private(set) var readiness: GraphReadiness
     private(set) var cloudStatus: GraphCloudStatus = .unavailable
     private(set) var lastError: GraphStoreOpeningError?
+    private(set) var lastEventDescription: String?
 
     private override init() {
         // Must match the container enabled in entitlements and the Developer
         // Portal. Xcode/account selects the CloudKit environment.
-        Graph.cloudKitContainerIdentifier = "iCloud.com.valerioburiani.GraphEvoDemo"
+        Graph.cloudKitContainerIdentifier = "iCloud.com.example.GraphEvoDemo"
 
         var configuration = GraphStoreConfiguration()
         configuration.name = "Main"
@@ -33,12 +34,18 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate {
         readiness = graph.readiness
         super.init()
         graph.cloudStatusDelegate = self
+        graph.eventDelegate = self
+        graph.cloudSyncDelegate = self
         graph.whenReady { [weak self] result in
             guard let self else { return }
             switch result {
             case .success:
                 self.readiness = .ready
                 self.lastError = nil
+                // Persistent History must be prepared after the persistent
+                // container has loaded its store and before remote changes
+                // can be delivered to the demo's watchers.
+                self.graph.ph_prepareOnLaunchAfterContainerReady()
                 print("✅ GraphEvoDemo graph ready: \(self.graph.location.path)")
             case .failure(let error):
                 self.readiness = .failed(error)
@@ -66,6 +73,21 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate {
         cloudStatus = status
         let description = cloudStatusDescription()
             print("☁️ GraphEvoDemo \(description)")
+        publishStateChange()
+    }
+
+    func graph(_ graph: Graph, didReceive event: GraphEvent) {
+        lastEventDescription = String(describing: event)
+        print("📣 GraphEvo event: \(lastEventDescription ?? "unknown")")
+        publishStateChange()
+    }
+
+    func graph(_ graph: Graph, didCompleteCloudImport event: GraphCloudImportEvent) {
+        let result = event.succeeded ? "succeeded" : "failed"
+        print("☁️ CloudKit import \(result) for \(event.storeIdentifier)")
+        if let error = event.error {
+            print("❌ CloudKit import error: \(error.localizedDescription)")
+        }
         publishStateChange()
     }
 

@@ -2,7 +2,7 @@
 //  SceneDelegate 2.swift
 //  GraphEvoDemo
 //
-//  Created by Valerio Buriani on 09/09/25.
+//  Created by GraphEvoDemo contributors.
 //
 
 
