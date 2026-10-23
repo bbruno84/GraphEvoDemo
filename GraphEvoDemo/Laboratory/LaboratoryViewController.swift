@@ -2,12 +2,26 @@ import UIKit
 
 final class LaboratoryViewController: UITableViewController {
     private let session = LaboratorySession.shared
+    private var observationToken: UUID?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Framework laboratory"
-        session.onChange = { [weak self] in self?.tableView.reloadData() }
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Reports", style: .plain, target: self, action: #selector(showReports))
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if observationToken == nil {
+            observationToken = session.observeChanges { [weak self] in self?.tableView.reloadData() }
+        }
+        tableView.reloadData()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        if let observationToken { session.removeObserver(observationToken) }
+        observationToken = nil
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { LaboratoryExperiment.planned.count + 3 }
@@ -65,17 +79,17 @@ final class LaboratoryViewController: UITableViewController {
     }
 
     @objc private func shareReport() {
-        guard let url = session.reportURL else { return }
+        guard let url = session.shareableReportURL else {
+            showText("A current final report has not been retained. Sharing is unavailable.")
+            return
+        }
         share([url])
     }
 
     @objc private func showReports() {
-        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("VerificationLaboratory/Reports")
         do {
-            let urls = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
-                .filter { $0.pathExtension == "json" }.sorted { $0.lastPathComponent < $1.lastPathComponent }
-            if urls.isEmpty { showText("No retained reports.") } else { share(urls) }
+            let urls = try session.completedReportURLs()
+            if urls.isEmpty { showText("No completed reports retained. Initial or interrupted records are not shared.") } else { share(urls) }
         } catch { showText("No reports available: \(error.localizedDescription)") }
     }
 
@@ -88,6 +102,6 @@ final class LaboratoryViewController: UITableViewController {
     private func showText(_ text: String) {
         let alert = UIAlertController(title: "Laboratory", message: text, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        (navigationController?.topViewController ?? self).present(alert, animated: true)
     }
 }

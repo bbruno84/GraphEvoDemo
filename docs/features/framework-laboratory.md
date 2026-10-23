@@ -17,7 +17,12 @@ the harness.
 
 `LaboratorySession` owns state and report retention, independently of the normal
 graph gateway. Its shared instance prevents overlapping checks or cleanup across
-app scenes. `LaboratoryViewController` forwards run/cleanup actions and displays
+app scenes. Change observation uses independent UUID subscriptions rather than
+one replaceable callback. Each `LaboratoryViewController` subscribes when it
+appears, removes its token when it disappears, and reloads current state on
+return; weak captures avoid retaining controllers. Multiple visible consumers
+continue receiving the same run and cleanup updates independently.
+`LaboratoryViewController` forwards run/cleanup actions and displays
 state and evidence. The states are Not run, Running, Passed (local harness only),
 and Failed. A second run requires explicit cleanup of the previous workspace.
 
@@ -38,7 +43,8 @@ cross-device isolation, performance, or v2 feasibility.
 1. Launch the app and select Framework laboratory.
 2. Tap V00. The screen changes to Running and then an outcome.
 3. Tap the outcome row to inspect the readable JSON report; Share exports it.
-4. Use Reports to export retained reports, including reports from prior launches.
+4. Use Reports to export completed retained reports, including prior launches.
+   Initial Running records and undecodable files are excluded from sharing.
 5. Use Clean temporary laboratory stores and confirm removal before another run.
 
 Files live inside the app's Application Support/VerificationLaboratory namespace:
@@ -52,7 +58,18 @@ interrupted runs. Every operation detaches its stores before cleanup becomes
 available. Reports remain; app removal deletes the app's retained evidence.
 Leaving the screen does not cancel an active check. After process interruption,
 a report can remain Running: treat it as interrupted/inconclusive, clean the
-stores explicitly, and repeat. There is no automatic remote cleanup or purge.
+stores explicitly, and repeat. Initial or interrupted Running JSON remains
+available on disk for inspection but is never offered as completed evidence.
+There is no automatic remote cleanup or purge.
+
+If the final report write fails after fixture verification, the session is
+Failed and the report displayed in memory explicitly becomes Inconclusive with
+the retention error, while preserving the fixture observations. `finished`
+marks the end of the attempt, not successful retention. Sharing the current
+report is blocked until its current final contents have been saved; the initial
+Running JSON is not substituted. A later successful explicit cleanup can retain
+that inconclusive report, including its original retention failure, without
+promoting the check back to Passed.
 
 A report records run identity, timestamps, OS, device class, Simulator/device
 execution, build provenance, fixture/model/backend, observations and cleanup.
@@ -113,7 +130,12 @@ place of the removed `GraphCloudSyncDelegate`.
 `LaboratoryTests` verifies state transitions, save/reopen and fixture isolation,
 retained JSON, repeated-run exclusion, cleanup of interrupted workspaces,
 preservation of unrelated directories and reports, fresh runs, and visible
-filesystem/report failures. A controller test verifies entry from the launch
+filesystem/report failures. Separate regression tests verify two independent
+subscribers and removal of either subscription, plus failure only on the final
+report write after both fixtures pass. They check the in-memory inconclusive
+outcome, exclusion of the initial Running file from current/archive sharing
+after relaunch, and subsequent retention of the inconclusive report during
+cleanup. A controller test verifies entry from the launch
 menu and the pending experiment rows. The existing four GraphEvo integration tests remain
 separate from the direct-framework harness. The hosted test target imports the
 actual app implementation; launching the test host does not open GraphProvider.
@@ -137,8 +159,9 @@ cross-account CloudKit verification, which remains future work.
   on disk and ignored, never committed. The original feature branch was retained.
 - App build and build-for-testing passed with Xcode 27.0 (27A266a), Swift 6.4
   toolchain and Swift 5 language mode, signing disabled.
-- All eight XCTest cases passed on iPhone 17 Simulator / iOS 26.5 (four existing
-  GraphEvo integration tests, four laboratory tests).
+- All ten XCTest cases passed on iPhone 17 Simulator / iOS 26.5 (four existing
+  GraphEvo integration tests, six laboratory tests), including the review fixes
+  for independent subscriptions and final-report retention failure.
 - The app launched and the two-entry launch screen was inspected. Navigation
   into the laboratory and its pending rows were verified by the controller test;
   the runtime snapshot tool did not expose table rows as tap targets.
