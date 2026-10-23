@@ -13,7 +13,7 @@ extension Notification.Name {
     static let graphProviderStateDidChange = Notification.Name("GraphEvoDemo.graphProviderStateDidChange")
 }
 
-final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegate, GraphCloudSyncDelegate {
+final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegate {
     
     static let shared = GraphProvider()
     private(set) var graph: Graph
@@ -25,7 +25,8 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegat
     private override init() {
         // Must match the container enabled in entitlements and the Developer
         // Portal. Xcode/account selects the CloudKit environment.
-        Graph.cloudKitContainerIdentifier = "iCloud.com.example.GraphEvoDemo"
+        let configuredContainer = Bundle.main.object(forInfoDictionaryKey: "GraphEvoDemoCloudKitContainer") as? String ?? ""
+        Graph.cloudKitContainerIdentifier = configuredContainer.isEmpty ? nil : configuredContainer
 
         var configuration = GraphStoreConfiguration()
         configuration.name = "Main"
@@ -35,7 +36,6 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegat
         super.init()
         graph.cloudStatusDelegate = self
         graph.eventDelegate = self
-        graph.cloudSyncDelegate = self
         graph.whenReady { [weak self] result in
             guard let self else { return }
             switch result {
@@ -79,6 +79,9 @@ final class GraphProvider: NSObject, GraphCloudStatusDelegate, GraphEventDelegat
     func graph(_ graph: Graph, didReceive event: GraphEvent) {
         lastEventDescription = String(describing: event)
         print("📣 GraphEvo event: \(lastEventDescription ?? "unknown")")
+        if case .stateChanged(.cloudImport(.finished(let event))) = event {
+            self.graph(graph, didCompleteCloudImport: event)
+        }
         publishStateChange()
     }
 

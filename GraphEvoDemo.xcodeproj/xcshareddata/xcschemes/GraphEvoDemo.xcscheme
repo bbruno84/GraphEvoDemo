@@ -78,17 +78,17 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
-            key = "com.apple.CoreData.SQLDebug&#10;"
+            key = "com.apple.CoreData.SQLDebug"
             value = "1"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "com.apple.CoreData.Logging.stderr&#10;"
+            key = "com.apple.CoreData.Logging.stderr"
             value = "1"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "com.apple.CoreData.CloudKitDebug&#10;"
+            key = "com.apple.CoreData.CloudKitDebug"
             value = "0"
             isEnabled = "YES">
          </EnvironmentVariable>
