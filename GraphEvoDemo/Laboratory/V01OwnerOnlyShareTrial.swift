@@ -320,7 +320,7 @@ final class V01OwnerOnlyShareTrial {
         guard roots.count == 1 else { throw V01Error.notOpen }
         let (share, ids): (CKShare, Set<NSManagedObjectID>) = try await withCheckedThrowingContinuation { continuation in
             trace?.record(.shareCallEntered, graph: graph)
-            owner.share(roots, to: nil) { ids, share, _, error in
+            owner.share(roots, to: nil) { @Sendable ids, share, _, error in
                 trace?.record(.shareCallbackEntered, graph: graph)
                 if error != nil { trace?.record(.shareCallbackFailed, graph: graph) }
                 if let error { continuation.resume(throwing: error) }
@@ -354,7 +354,7 @@ final class V01OwnerOnlyShareTrial {
         // Explicitly persist through Core Data; this completion is distinct from object export.
         let persisted: CKShare = try await withCheckedThrowingContinuation { continuation in
             trace?.record(.persistCallEntered, graph: graph)
-            owner.persistUpdatedShare(share, in: store) { share, error in
+            owner.persistUpdatedShare(share, in: store) { @Sendable share, error in
                 trace?.record(.persistCallbackEntered, graph: graph)
                 if let error { continuation.resume(throwing: error) }
                 else if let share { continuation.resume(returning: share) }
