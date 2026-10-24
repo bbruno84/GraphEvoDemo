@@ -63,6 +63,9 @@ nonisolated struct T6Report: Codable {
     var members: [T6Member] = []
     var nativeEvents: [V01NativeEvent] = []
     var droppedEvents = 0
+    var diagnosticTrace: String?
+    var diagnosticWriteFailures: Int?
+    var diagnosticDroppedEntries: Int?
     var errors: [String] = []
     var outcome = "Running; not completed evidence"
     var lifecycle = "Not opened"
@@ -189,6 +192,8 @@ final class V01OwnerOnlyShareTrial {
         environment["topology"] = "One private SQLite; two disconnected root graphs; new owner-only share per root; entire-run reads"
         report = T6Report(runID: request.runID, stageID: stageID, processID: UUID(), role: request.role,
                           started: Date(), environment: environment, windowSeconds: request.window)
+        var trace: T6Trace?
+        var heartbeat: Task<Void, Never>?
         func persist() throws {
             try FileManager.default.createDirectory(at: reportURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             let encoder = JSONEncoder()
@@ -199,6 +204,22 @@ final class V01OwnerOnlyShareTrial {
             didChange?(String(decoding: data, as: UTF8.self))
         }
         do {
+            if ProcessInfo.processInfo.arguments.contains("--v01-t6-trace") {
+                let url = reportURL.deletingPathExtension().appendingPathExtension("trace.jsonl")
+                trace = try T6Trace(url: url)
+                report?.diagnosticTrace = url.lastPathComponent
+                trace?.record(.runStarted)
+                heartbeat = Task { @MainActor in
+                    while !Task.isCancelled {
+                        do { try await Task.sleep(nanoseconds: 5_000_000_000) }
+                        catch { break }
+                        trace?.record(.mainActorHeartbeat)
+                        report?.diagnosticWriteFailures = trace?.counts.failures
+                        report?.diagnosticDroppedEntries = trace?.counts.dropped
+                        do { try persist() } catch { trace?.record(.checkpointFailed) }
+                    }
+                }
+            }
             guard !GraphProvider.wasInitialized, !containerIdentifier.isEmpty,
                   ["t6-writer", "t6-reader"].contains(request.role) else { throw V01Error.missingConfiguration }
             #if targetEnvironment(simulator)
@@ -248,7 +269,7 @@ final class V01OwnerOnlyShareTrial {
                 for graph in ["A", "B"] {
                     report?.lifecycle = "Requesting a new owner-only share for root \(graph)"
                     try persist()
-                    try await createShare(graph: graph, runID: request.runID, checkpoint: persist)
+                    try await createShare(graph: graph, runID: request.runID, trace: trace, checkpoint: persist)
                     try persist()
                 }
             }
@@ -268,6 +289,9 @@ final class V01OwnerOnlyShareTrial {
             report?.errors.append(v01ErrorCode(error))
             report?.outcome = "Stage failed; no fallback, resource substitution or retry."
         }
+        heartbeat?.cancel()
+        report?.diagnosticWriteFailures = trace?.counts.failures
+        report?.diagnosticDroppedEntries = trace?.counts.dropped
         if let observer { NotificationCenter.default.removeObserver(observer) }
         observer = nil
         do {
@@ -279,31 +303,43 @@ final class V01OwnerOnlyShareTrial {
             report?.lifecycle = "Contexts reset, store detached and owner released. Terminate process; no shutdown acknowledgement inferred."
         } catch { report?.errors.append("Close: " + v01ErrorCode(error)) }
         report?.finished = Date()
+        trace?.record(.runFinished)
         do { try persist(); print("V01 T6 stage ended; retained=true; role=\(request.role); runID=\(request.runID)") }
         catch { print("V01 T6 final report retention failed: \(v01ErrorCode(error))") }
     }
 
-    private func createShare(graph: String, runID: UUID, checkpoint: () throws -> Void) async throws {
+    private func createShare(graph: String, runID: UUID, trace: T6Trace?, checkpoint: () throws -> Void) async throws {
         guard let owner, let store = owner.persistentStoreCoordinator.persistentStores.first else { throw V01Error.notOpen }
         // The main-queue context stays owned by the container throughout the asynchronous share operation.
         let context = owner.viewContext
         let request = NSFetchRequest<NSManagedObject>(entityName: "V01T6Member")
         request.predicate = NSPredicate(format: "runID == %@ AND node == %@", runID.uuidString, graph + "-root")
+        trace?.record(.rootFetchStarted, graph: graph)
         let roots = try context.fetch(request)
+        trace?.record(.rootFetchFinished, graph: graph)
         guard roots.count == 1 else { throw V01Error.notOpen }
         let (share, ids): (CKShare, Set<NSManagedObjectID>) = try await withCheckedThrowingContinuation { continuation in
+            trace?.record(.shareCallEntered, graph: graph)
             owner.share(roots, to: nil) { ids, share, _, error in
+                trace?.record(.shareCallbackEntered, graph: graph)
+                if error != nil { trace?.record(.shareCallbackFailed, graph: graph) }
                 if let error { continuation.resume(throwing: error) }
                 else if let share, let ids { continuation.resume(returning: (share, ids)) }
                 else { continuation.resume(throwing: V01Error.notOpen) }
             }
+            trace?.record(.shareCallReturned, graph: graph)
         }
+        trace?.record(.shareContinuationResumed, graph: graph)
+        trace?.record(.metadataReadStarted, graph: graph)
         let callback = T6Share(share)
+        trace?.record(.metadataReadFinished, graph: graph)
         var names: [String] = []
         var lookupErrors: [String] = []
         for id in ids {
+            trace?.record(.objectLookupStarted, graph: graph)
             do { names.append(try context.existingObject(with: id).value(forKey: "node") as? String ?? "<nil>") }
             catch { lookupErrors.append(v01ErrorCode(error)) }
+            trace?.record(.objectLookupFinished, graph: graph)
         }
         let index = report?.shareOperations.count ?? 0
         report?.shareOperations.append(T6ShareOperation(graph: graph, callbackShare: callback,
@@ -317,12 +353,16 @@ final class V01OwnerOnlyShareTrial {
         }
         // Explicitly persist through Core Data; this completion is distinct from object export.
         let persisted: CKShare = try await withCheckedThrowingContinuation { continuation in
+            trace?.record(.persistCallEntered, graph: graph)
             owner.persistUpdatedShare(share, in: store) { share, error in
+                trace?.record(.persistCallbackEntered, graph: graph)
                 if let error { continuation.resume(throwing: error) }
                 else if let share { continuation.resume(returning: share) }
                 else { continuation.resume(throwing: V01Error.notOpen) }
             }
+            trace?.record(.persistCallReturned, graph: graph)
         }
+        trace?.record(.persistContinuationResumed, graph: graph)
         let summary = T6Share(persisted)
         report?.shareOperations[index].persistedShare = summary
         try checkpoint()
@@ -330,6 +370,7 @@ final class V01OwnerOnlyShareTrial {
               summary.publicPermission == CKShare.ParticipantPermission.none.rawValue else {
             throw NSError(domain: "V01T6UnexpectedShareAccess", code: 2)
         }
+        trace?.record(.shareFinished, graph: graph)
     }
 
     private func snapshot(runID: UUID) async throws -> [T6Member] {
