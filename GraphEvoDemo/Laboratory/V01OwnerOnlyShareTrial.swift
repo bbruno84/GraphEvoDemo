@@ -232,23 +232,10 @@ final class V01OwnerOnlyShareTrial {
             let owner = NSPersistentCloudKitContainer(name: "V01T6Probe", managedObjectModel: Self.model())
             self.owner = owner
             owner.persistentStoreDescriptions = V01CloudStore.descriptions(stores: [V01StoreLocation(key: "main", url: storeURL)], containerIdentifier: containerIdentifier)
-            observer = NotificationCenter.default.addObserver(forName: NSPersistentCloudKitContainer.eventChangedNotification, object: owner, queue: .main) { [weak self] note in
-                guard let trial = self,
-                      let event = note.userInfo?[NSPersistentCloudKitContainer.eventNotificationUserInfoKey] as? NSPersistentCloudKitContainer.Event else { return }
-                let kind: String
-                switch event.type {
-                case .setup: kind = "setup"
-                case .import: kind = "import"
-                case .export: kind = "export"
-                @unknown default: kind = "unknown"
-                }
-                let value = V01NativeEvent(identifier: event.identifier, kind: kind, started: event.startDate, finished: event.endDate,
-                                           succeeded: event.succeeded, storeIdentifier: event.storeIdentifier, error: event.error.map(v01ErrorCode))
-                Task { @MainActor in
-                    guard trial.report?.finished == nil else { return }
-                    if trial.report?.nativeEvents.count ?? 0 < 128 { trial.report?.nativeEvents.append(value) }
-                    else { trial.report?.droppedEvents += 1 }
-                }
+            observer = T6EventDelivery.observe(owner: owner) { [weak self] value in
+                guard let self, self.report?.finished == nil else { return }
+                if self.report?.nativeEvents.count ?? 0 < 128 { self.report?.nativeEvents.append(value) }
+                else { self.report?.droppedEvents += 1 }
             }
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
                 owner.loadPersistentStores { _, error in

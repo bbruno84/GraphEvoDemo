@@ -30,7 +30,7 @@ struct V01Snapshot: Codable {
     var storeIdentifier: String?
 }
 
-struct V01NativeEvent: Codable {
+nonisolated struct V01NativeEvent: Codable, Sendable {
     let identifier: UUID
     let kind: String
     let started: Date
@@ -41,7 +41,7 @@ struct V01NativeEvent: Codable {
     var ownerKey: String? = nil
 }
 
-func v01ErrorCode(_ error: Error) -> String {
+nonisolated func v01ErrorCode(_ error: Error) -> String {
     let nsError = error as NSError
     return "\(nsError.domain):\(nsError.code)"
 }
