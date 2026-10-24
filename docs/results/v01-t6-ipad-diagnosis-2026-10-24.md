@@ -6,6 +6,11 @@ iPad**. This is preliminary same-device evidence, not independent-device recover
 cross-account sharing, selective download, or GraphEvo integration verification.
 No iPhone was used in this investigation.
 
+Subsequent result: a separately authorized
+[independent iPhone reader](v01-t6-independent-reader-2026-10-24.md) later
+recovered this writer's exact fixture and share identities with the same binary.
+The iPad-only diagnosis and same-device observations below remain unchanged.
+
 ## Diagnosis before the fix
 
 The [earlier attempts](v01-t6-2026-10-23.md) remain preserved as inconclusive

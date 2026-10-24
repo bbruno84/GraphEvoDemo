@@ -9,8 +9,11 @@ The [initial observations](../results/v01-t6-2026-10-23.md) remain inconclusive.
 A later [iPad diagnosis and fix](../results/v01-t6-ipad-diagnosis-2026-10-24.md)
 removed a laboratory observer-delivery deadlock. The writer created two distinct
 owner-only share zones and a fresh-store reader recovered the exact fixture on
-the same iPad. This is preliminary same-device evidence; independent-device
-recovery and selective download remain unverified.
+the same iPad. A subsequently authorized
+[independent iPhone reader](../results/v01-t6-independent-reader-2026-10-24.md)
+recovered the exact five members and share identities using the same binary.
+Both graphs recovered into one SQLite; selective download, other-user sharing,
+lifecycle behavior and broader R01 requirements remain unverified.
 
 The implementation is `V01OwnerOnlyShareTrial.swift`. It is CLI-only and keeps
 `GraphProvider` uninitialized. Production execution rejects Simulator; local

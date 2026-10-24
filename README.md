@@ -32,8 +32,10 @@ stages. Local tests do not establish a CloudKit result.
 The [initial T6 attempts](docs/results/v01-t6-2026-10-23.md) remain inconclusive.
 A later [iPad diagnosis and fix](docs/results/v01-t6-ipad-diagnosis-2026-10-24.md)
 removed a laboratory observer-delivery deadlock and observed distinct owner-only
-share zones plus fresh-store recovery on the same iPad. Independent-device
-recovery and selective download remain unverified.
+share zones plus fresh-store recovery on the same iPad. A later
+[independent iPhone reader](docs/results/v01-t6-independent-reader-2026-10-24.md)
+recovered the exact fixture and share identities. Both graphs downloaded into
+one SQLite; selective synchronization and broader R01 requirements remain open.
 T3–T4 and V02–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.
