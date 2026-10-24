@@ -1,0 +1,10 @@
+// Local, unsigned-capable development defaults. Never commit account identifiers.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.GraphEvoDemo
+DEVELOPMENT_TEAM =
+CODE_SIGN_ENTITLEMENTS =
+GRAPHEVO_CLOUD_CONTAINER =
+LAB_DEMO_REVISION =
+LAB_GRAPHEVO_REVISION = 4dc0a7f9a717ee535e9b630b998cd6c869a2d538
+LAB_TOOLCHAIN =
+LAB_SOURCE_STATE =
+#include? "Local.xcconfig"

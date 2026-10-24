@@ -32,6 +32,26 @@ Add explanatory comments where they help readers understand the reasoning,
 procedures, data flow, or non-obvious behavior of a function. Comments should
 explain why the code works this way, not merely repeat what the code says.
 
+## Application architecture
+
+Use an incremental MVVM structure for feature work:
+
+- View controllers are responsible for UIKit view composition, navigation,
+  user interaction forwarding, and presentation-only state.
+- View models own feature state, GraphEvo queries, mutations, watchers, and
+  feature-specific operations. They should be testable without requiring a
+  view controller hierarchy.
+- `GraphProvider` is the application gateway for the shared `Graph`, readiness,
+  CloudKit status, GraphEvo events, and Persistent History preparation. Do not
+  duplicate graph-opening or CloudKit lifecycle logic in view controllers.
+- Keep GraphEvo-specific code out of view controllers whenever it represents
+  reusable feature behavior. A view controller may read view-model state and
+  forward user actions to the view model.
+
+When adding a feature, decide its state owner before writing the UI. Add or
+extend a focused view model, add tests for its observable behavior, and keep the
+view controller limited to presentation concerns.
+
 ## Feature documentation
 
 Every feature must include documentation that explains the implementation in
@@ -49,6 +69,23 @@ When appropriate, feature documentation should cover the following:
 
 Keep documentation close to the feature it describes and update it whenever the
 implementation or public behavior changes.
+
+## Dependency and test policy
+
+The demo application follows the `develop` branch of the GraphEvo repository so
+that new library behavior can be exercised before a stable release. Keep the
+Swift Package Manager dependency and its resolved revision aligned with
+`GraphEvo` `develop`.
+
+Every implemented or demonstrated GraphEvo feature must be accompanied by
+tests covering its observable behavior. Prefer focused tests for the demo's
+integration with GraphEvo, including persistence, queries, relationships,
+actions, tags, groups, watchers, and CloudKit-related lifecycle behavior where
+the environment permits.
+
+Migration implementation and migration-specific tests are currently out of
+scope. Do not add migration behavior to the demo unless it is explicitly
+requested.
 
 ## Branch strategy and pull requests
 
@@ -79,3 +116,44 @@ needed.
 
 Do not commit credentials, CloudKit secrets, local store files, build products,
 or other generated artifacts.
+
+## Identity and project configuration
+
+Tracked project files must not contain developer-specific Apple identifiers.
+Use neutral placeholders such as `com.example.GraphEvoDemo`,
+`iCloud.com.example.GraphEvoDemo`, and `YOUR_TEAM_ID`. If a feature requires
+account-specific configuration, document every replacement point in
+`README.md` and the relevant feature guide.
+
+## Framework laboratory
+
+The launch screen separates the v1 demo from the framework laboratory.
+`GraphProvider` remains the gateway for normal GraphEvo behavior; do not initialize
+it from the launch screen or laboratory. `LaboratorySession` owns the independent
+local harness lifecycle and evidence. Direct Core Data fixtures are permitted
+only inside this explicit framework-verification boundary.
+
+V00-local-harness and the V01 T0 writer/reader instrumentation are implemented.
+V01 instrumentation is not proof of an executed/passed control. Same-device
+recovery remains preliminary; T0 requires independent devices on the same
+account. T1–T2 are separately instrumented; they require reviewed T0 evidence
+and explicit trial authorization. The exact T1 cloud configuration was natively
+rejected; preserve that evidence and its preflight guard, do not bypass it or
+reinterpret a preflight result as another native trial. T2 was not run. Separate
+T5 instrumentation retains two distinct one-store owners and a dedicated peer;
+review code/tests before hardware execution. Local/injected passes are not
+cloud evidence. See the [T5 guide](docs/features/v01-independent-owners.md).
+T3–T4 and V02–V08 remain unimplemented. See
+[the T6 guide](docs/features/v01-owner-only-shares.md) for the separate CLI-only
+owner-only share trial. Keep callback assignment, share persistence, object export,
+and fresh-peer recovery distinct. T6 adds no participants or invitations and
+does not establish selective download or separate local stores. See
+[the V01 guide](docs/features/v01-control.md) for execution and evidence rules. Keep direct framework evidence distinct
+from GraphEvo integration, and local save completion distinct from cloud sync.
+Keep temporary stores within the laboratory namespace, detach stores before
+explicit cleanup, and retain reports. See
+[the laboratory guide](docs/features/framework-laboratory.md).
+
+Account-specific Development settings belong in ignored
+`Configuration/Local.xcconfig`, never tracked source, project or entitlement
+files. The default app configuration is local and has no CloudKit identifier.

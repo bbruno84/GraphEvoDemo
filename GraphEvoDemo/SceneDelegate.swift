@@ -2,7 +2,7 @@
 //  SceneDelegate 2.swift
 //  GraphEvoDemo
 //
-//  Created by Valerio Buriani on 09/09/25.
+//  Created by GraphEvoDemo contributors.
 //
 
 
@@ -24,7 +24,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         print("✅ SceneDelegate started")
 
         let window = UIWindow(windowScene: windowScene)
-        let tabBarController = MainTabBarController()
+        let root: UIViewController
+        if let request = V01OwnerOnlyShareTrial.parse(ProcessInfo.processInfo.arguments) {
+            root = V01OwnerOnlyShareViewController(request: request)
+        } else if let request = V01LaunchRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V01ViewController(automaticRequest: request)
+        } else {
+            root = LaunchViewController(style: .insetGrouped)
+        }
+        let tabBarController = UINavigationController(rootViewController: root)
         window.rootViewController = tabBarController
         self.window = window
         window.makeKeyAndVisible()

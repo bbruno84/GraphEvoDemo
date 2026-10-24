@@ -21,6 +21,20 @@
                ReferencedContainer = "container:GraphEvoDemo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "15620A1D2E7000E900293C6E"
+               BuildableName = "GraphEvoDemoTests.xctest"
+               BlueprintName = "GraphEvoDemoTests"
+               ReferencedContainer = "container:GraphEvoDemo.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -29,6 +43,18 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "15620A1D2E7000E900293C6E"
+               BuildableName = "GraphEvoDemoTests.xctest"
+               BlueprintName = "GraphEvoDemoTests"
+               ReferencedContainer = "container:GraphEvoDemo.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -52,17 +78,17 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
-            key = "com.apple.CoreData.SQLDebug&#10;"
+            key = "com.apple.CoreData.SQLDebug"
             value = "1"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "com.apple.CoreData.Logging.stderr&#10;"
+            key = "com.apple.CoreData.Logging.stderr"
             value = "1"
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
-            key = "com.apple.CoreData.CloudKitDebug&#10;"
+            key = "com.apple.CoreData.CloudKitDebug"
             value = "0"
             isEnabled = "YES">
          </EnvironmentVariable>
