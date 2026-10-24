@@ -5,14 +5,12 @@ CloudKit shares. It uses one `NSPersistentCloudKitContainer`, one fresh private
 SQLite store, and the existing Development container. It does not test GraphEvo
 integration, selective download, or independent local stores.
 
-The [hardware observation](../results/v01-t6-2026-10-23.md) is inconclusive.
-Neither attempt retained a completed share-A callback result; the clean repeat was
-explicitly stopped after more than five minutes pending. No reader was launched.
-This does not establish native rejection or successful share/zone separation.
-A later repeat after operator-reported network recovery also remained
-inconclusive after more than five minutes; it reached no completed share-A result
-or reader stage. The result document preserves that follow-up separately and
-does not attribute the wait to the network.
+The [initial observations](../results/v01-t6-2026-10-23.md) remain inconclusive.
+A later [iPad diagnosis and fix](../results/v01-t6-ipad-diagnosis-2026-10-24.md)
+removed a laboratory observer-delivery deadlock. The writer created two distinct
+owner-only share zones and a fresh-store reader recovered the exact fixture on
+the same iPad. This is preliminary same-device evidence; independent-device
+recovery and selective download remain unverified.
 
 The implementation is `V01OwnerOnlyShareTrial.swift`. It is CLI-only and keeps
 `GraphProvider` uninitialized. Production execution rejects Simulator; local
@@ -118,3 +116,36 @@ boundary for storage or selective synchronization.
 CLI validation, complete-multiset rejection cases, share identity across zones,
 and rejection of absent mappings, mixed membership, and public/additional
 participants. It does not invoke native share creation or cross-device import.
+
+
+## Opt-in diagnostics and event delivery
+
+Add `--v01-t6-trace` to retain a sibling `.trace.jsonl` file alongside the report.
+`T6Trace` serializes entries under a lock, without enclosing a Core Data call in
+that lock. It records sequence, timestamp, phase, optional graph label and main
+thread status, without fixture payload or participant/account identities. Entries
+are bounded to 512; write failures and dropped entries are counted. An existing
+trace path is rejected rather than overwritten.
+
+Phases distinguish root fetch, entry/return of share and persistence calls,
+callback entry before metadata processing, continuation resumption, metadata
+conversion and object lookup. Callbacks are explicitly `@Sendable`; the recorder
+can write on their calling queue before returning to MainActor. A callback can
+occur before the API invocation returns. MainActor heartbeats run approximately
+every five seconds while the stage is active and persist the report; their
+absence alone is not proof of a deadlock. Trace write failure or entry truncation
+must also be considered when interpreting absent phases.
+
+T6 registers native event notifications through `T6EventDelivery.observe` with
+`queue: nil`. It converts event metadata to a nonisolated Sendable DTO on the
+posting queue, then asynchronously submits report changes to MainActor. Keep
+that handoff asynchronous: a `.main` NotificationCenter delivery can make native
+posting wait on the same main queue that is synchronously inside a share call.
+The reproduced cycle and controlled after-fix result are documented separately.
+The fix preserves the model, root context and share-call sequence.
+
+`T6TraceTests` adds three tests for sequence/schema, bounded concurrent appends,
+and existing-path retention. `T6EventDeliveryTests` uses the actual observer
+factory with a private NotificationCenter and verifies background posting can
+return while MainActor is occupied. Together with existing coverage, the final
+local suite has 45 passing tests. These checks do not replace device evidence.
