@@ -52,6 +52,11 @@ to the owner, unchanged owner-only B and reopening of both sides' existing store
 adds an isolated single-save probe, independent owner observation and a guarded
 RW restore. Local permission advice, local save, export and remote state remain
 separate observations; no enforcement result is implied by its tests.
+The [read-only observation](docs/results/v02-readonly-fresh-replica-2026-10-26.md)
+recovered a fresh accepted-share replica and permitted the local save despite
+negative record advice; the owner remained unchanged in the bounded window.
+[Live-revocation instrumentation](docs/features/v02-live-revocation.md) separately
+tests A3→A0 on the original open participant store while preserving owner A/B.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not

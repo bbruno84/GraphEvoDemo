@@ -1,6 +1,11 @@
 # V02: read-only save and fresh accepted-share replica
 
-Status: **instrumented and locally tested; hardware outcomes are separate**.
+Status: **fresh RO import observed; local save permitted despite negative advice;
+owner unchanged for the bounded window**. See the
+[retained result](../results/v02-readonly-fresh-replica-2026-10-26.md).
+No server rejection or general enforcement claim follows. RW restore was not
+executed and the probe stays permanently parked. Hardware outcomes remain
+separate from local tests.
 This focused follow-up addresses the first V02 read-only and fresh-replica
 checks. It does not implement revocation, leaving, offline behavior or conflicts.
 It reuses the [observed initial smoke](../results/v02-cross-account-smoke-2026-10-26.md)

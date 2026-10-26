@@ -6,6 +6,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [V02 live revocation](v02-live-revocation.md)
 - [V02 read-only/fresh accepted-share replica](v02-readonly-fresh-replica.md)
 - [V01 incremental membership](v01-incremental-membership.md)
 - [Standalone V03 local concurrency probe](../../Experiments/ConcurrencyProbe/README.md)

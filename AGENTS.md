@@ -164,6 +164,13 @@ Consumed probe paths must never reopen. Restore RW only after the coordinator
 has stopped/quarantined the probe and supplied its retained final report; do
 not infer CloudKit quiescence from closing. No silent value restoration, retry,
 purge, revocation or leaving belongs in this batch.
+Revocation has a [separate case/stage path](docs/features/v02-live-revocation.md).
+Require a positive A baseline and live readiness before removing only the
+authorized participant; do not purge owner data or reuse the consumed probe.
+Judge app-visible A3→A0 on the same open participant stores and retained owner
+A/B. History is accessory and never a causal/completion barrier. Do not start
+new V03–V08 explorations: standalone earlier packages remain historical local
+evidence, not requirements for the sharing objective.
 T3–T4 and V03–V08 remain unimplemented. See
 `Experiments/ConcurrencyProbe/README.md` for the separate macOS-only Swift 6
 prototype; its eight tests are not part of the iOS app suite or CloudKit evidence.
