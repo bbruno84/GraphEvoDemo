@@ -9,6 +9,7 @@ nonisolated enum T6TracePhase: String, Codable, Sendable {
     case objectLookupStarted, objectLookupFinished
     case persistCallEntered, persistCallReturned, persistCallbackEntered
     case persistContinuationResumed, shareFinished, runFinished
+    case purgeCallEntered, purgeCallReturned, purgeCallbackEntered
 }
 
 nonisolated struct T6TraceEntry: Codable, Sendable {

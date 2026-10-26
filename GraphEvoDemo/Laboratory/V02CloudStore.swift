@@ -466,3 +466,90 @@ extension V02CloudStore: V02RevocationStoreAccess {
         }
     }
 }
+
+extension V02CloudStore: V02LifecycleStoreAccess {
+    func reinviteParticipant(runID: UUID, caseID: UUID, recipient: V02PrivateID, container: String,
+                             checkpoint: () throws -> Void) async throws -> V02Envelope {
+        guard recipient.recordID != currentUser, let cloud = owner as? NSPersistentCloudKitContainer,
+              let store = stores[.privateStore] else { throw V02Error.invalidAccount }
+        let share = try rootShare("A", runID: runID)
+        guard share.publicPermission == .none, T6Share(share).ownerCount == 1, T6Share(share).nonOwnerCount == 0 else { throw V02Error.invalidShare }
+        let people: [CKShare.Participant] = try await withCheckedThrowingContinuation { continuation in
+            cloud.fetchParticipants(matching: [CKUserIdentity.LookupInfo(userRecordID: recipient.recordID)], into: store) { @Sendable people, error in
+                if let error { continuation.resume(throwing: error) }
+                else if let people { continuation.resume(returning: people) }
+                else { continuation.resume(throwing: V02Error.missingResponse) }
+            }
+        }
+        guard people.count == 1, let person = people.first, person.userIdentity.userRecordID == recipient.recordID else { throw V02Error.unexpectedParticipant }
+        person.role = .privateUser; person.permission = .readWrite; share.addParticipant(person)
+        try checkpoint()
+        let saved = try await persist(share, store: store, cloud: cloud, graph: "A")
+        guard saved.publicPermission == .none, T6Share(saved).ownerCount == 1, T6Share(saved).nonOwnerCount == 1,
+              let url = saved.url else { throw V02Error.invalidShare }
+        return V02Envelope(purpose: "lifecycle-invitation", runID: runID, containerIdentifier: container,
+            account: V02PrivateID(currentUser), recipient: recipient, share: V02PrivateID(saved.recordID), shareURL: url, caseID: caseID)
+    }
+
+    func reacceptInvitation(_ invitation: V02Envelope, runID: UUID, caseID: UUID, container: String,
+                             checkpoint: () throws -> Void) async throws -> V02ReacceptResult {
+        try invitation.validate(runID: runID, container: container, purpose: "lifecycle-invitation")
+        guard invitation.caseID == caseID, invitation.recipient?.recordID == currentUser, invitation.account.recordID != currentUser,
+              let expectedShare = invitation.share, let url = invitation.shareURL, url.scheme == "https",
+              ["www.icloud.com", "icloud.com"].contains(url.host?.lowercased() ?? ""), url.path.hasPrefix("/share/"),
+              let cloud = owner as? NSPersistentCloudKitContainer, let store = stores[.sharedStore] else { throw V02Error.invalidEnvelope }
+        let metadata = try await CKContainer(identifier: container).shareMetadata(for: url)
+        guard metadata.containerIdentifier == container, metadata.ownerIdentity.userRecordID == invitation.account.recordID,
+              expectedShare.matches(metadata.share.recordID, shareOwner: invitation.account.recordID), metadata.share.publicPermission == .none,
+              metadata.participantRole == .privateUser, metadata.participantPermission == .readWrite else { throw V02Error.invalidMetadata }
+        if metadata.participantStatus == .accepted {
+            return V02ReacceptResult(metadataStatus: metadata.participantStatus.rawValue, acceptanceAPICalled: false, alreadyAccepted: true)
+        }
+        guard metadata.participantStatus == .pending else { throw V02Error.invalidMetadata }
+        try checkpoint()
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            cloud.acceptShareInvitations(from: [metadata], into: store) { @Sendable accepted, error in
+                if let error { continuation.resume(throwing: error) }
+                else if accepted?.count == 1 { continuation.resume() }
+                else { continuation.resume(throwing: V02Error.missingResponse) }
+            }
+        }
+        return V02ReacceptResult(metadataStatus: metadata.participantStatus.rawValue, acceptanceAPICalled: true, alreadyAccepted: false)
+    }
+
+    func leaveSharedA(_ invitation: V02Envelope, runID: UUID, caseID: UUID, container: String,
+                       checkpoint: () throws -> Void) async throws -> V02RecordKey? {
+        try invitation.validate(runID: runID, container: container, purpose: "lifecycle-invitation")
+        guard invitation.caseID == caseID, invitation.recipient?.recordID == currentUser, invitation.account.recordID != currentUser,
+              let expected = invitation.share, scopes == V02Scope.allCases,
+              let cloud = owner as? NSPersistentCloudKitContainer, let shared = stores[.sharedStore], shared !== stores[.privateStore],
+              cloud.persistentStoreDescriptions.first(where: { $0.url == shared.url })?.cloudKitContainerOptions?.databaseScope == .shared else { throw V02Error.invalidShare }
+        let rows = try await snapshot(runID: runID)
+        let expectedKey = V02RecordKey.make(expected.recordID, currentUser: invitation.account.recordID, runID: runID)
+        guard V02LifecycleFixture.permitsLeave(rows, scope: .sharedStore, role: .privateUser, expectedShare: expectedKey) else { throw V02Error.invalidFixture }
+        let request = Self.request(runID, store: shared)
+        request.predicate = NSPredicate(format: "runID == %@ AND node == 'A-root' AND graph == 'A'", runID.uuidString)
+        let roots = try cloud.viewContext.fetch(request)
+        guard roots.count == 1, let root = roots.first,
+              let share = try cloud.fetchShares(matching: [root.objectID])[root.objectID], share.currentUserParticipant?.role == .privateUser,
+              expected.matches(share.recordID, shareOwner: invitation.account.recordID) else { throw V02Error.invalidShare }
+        let zone = share.recordID.zoneID
+        try checkpoint()
+        let returned: CKRecordZone.ID? = try await withCheckedThrowingContinuation { continuation in
+            trace?.record(.purgeCallEntered, graph: "A")
+            // A non-nil, validated shared store is mandatory: never purge owner-private data or all stores.
+            cloud.purgeObjectsAndRecordsInZone(with: zone, in: shared) { @Sendable [trace] returned, error in
+                trace?.record(.purgeCallbackEntered, graph: "A")
+                if let error { continuation.resume(throwing: error) }
+                else { continuation.resume(returning: returned) }
+            }
+            trace?.record(.purgeCallReturned, graph: "A")
+        }
+        if let returned {
+            let key = V02RecordKey.make(CKRecord.ID(recordName: share.recordID.recordName, zoneID: returned), currentUser: currentUser, runID: runID)
+            guard key == expectedKey else { throw V02Error.invalidShare }
+            return key
+        }
+        return nil // A nil zone with no error is retained, not silently interpreted as data removal.
+    }
+}

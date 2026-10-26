@@ -167,6 +167,11 @@ purge, revocation or leaving belongs in this batch.
 Revocation has a [separate case/stage path](docs/features/v02-live-revocation.md).
 Require a positive A baseline and live readiness before removing only the
 authorized participant; do not purge owner data or reuse the consumed probe.
+The [reinvite/leave path](docs/features/v02-reinvite-voluntary-leave.md) must
+reuse original stores and the authorized recipient. Keep case-scoped invitation
+artifacts separate. Leave requires a known A3 fixture, private-user role and
+explicit shared store; never pass a nil store or an owner-private store to purge.
+Record already-accepted metadata without replaying acceptance.
 Judge app-visible A3→A0 on the same open participant stores and retained owner
 A/B. History is accessory and never a causal/completion barrier. Do not start
 new V03–V08 explorations: standalone earlier packages remain historical local

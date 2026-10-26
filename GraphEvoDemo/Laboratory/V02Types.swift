@@ -170,6 +170,7 @@ nonisolated struct V02Envelope: Codable {
     var recipient: V02PrivateID?
     var share: V02PrivateID?
     var shareURL: URL?
+    var caseID: UUID?
     func validate(runID: UUID, container: String, purpose: String) throws {
         guard version == 1, self.runID == runID, containerIdentifier == container, self.purpose == purpose,
               !account.recordName.isEmpty else { throw V02Error.invalidEnvelope }

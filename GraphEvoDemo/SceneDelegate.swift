@@ -25,7 +25,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         let root: UIViewController
-        if let request = V02RevocationRequest.parse(ProcessInfo.processInfo.arguments) {
+        if let request = V02LifecycleRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02LifecycleViewController(request: request)
+        } else if let request = V02RevocationRequest.parse(ProcessInfo.processInfo.arguments) {
             root = V02RevocationViewController(request: request)
         } else if let request = V02PermissionRequest.parse(ProcessInfo.processInfo.arguments) {
             root = V02PermissionViewController(request: request)
