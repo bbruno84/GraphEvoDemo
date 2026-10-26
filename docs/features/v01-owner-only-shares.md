@@ -22,6 +22,11 @@ opening CloudKit. A local pass is not cross-device evidence.
 
 ## Model and fixture
 
+The separate [incremental-membership control](v01-incremental-membership.md)
+instruments a later A-003 relation/save addition, update, deletion and fresh
+phase-specific reader. The original T6 fixture/result below remains unchanged;
+initial owner-only sharing alone does not establish incremental membership.
+
 The model preserves `V01ProbeItem` unchanged so earlier Development records remain
 representable. The added `V01T6Member` entity has optional string attributes and
 optional inverse `parent`/`children` relationships, without ordered relationships

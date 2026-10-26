@@ -158,10 +158,18 @@ a new owner opening, unchanged B and existing-store reopen on both sides. Do not
 extend this to live import in an already-open owner, fresh post-acceptance replica
 recovery, GraphEvo facades or the full permission/lifecycle/conflict matrix.
 T3–T4 and V03–V08 remain unimplemented. See
+`Experiments/ConcurrencyProbe/README.md` for the separate macOS-only Swift 6
+prototype; its eight tests are not part of the iOS app suite or CloudKit evidence.
+Do not infer app V03 implementation or GraphEvo v1 Swift 6 compatibility from it. See
 [the T6 guide](docs/features/v01-owner-only-shares.md) for the separate CLI-only
 owner-only share trial. Keep callback assignment, share persistence, object export,
 and fresh-peer recovery distinct. T6 adds no participants or invitations and
 does not establish selective download or separate local stores. See
+the separate [incremental-membership guide](docs/features/v01-incremental-membership.md)
+for the relation/save-only A-003 control. Do not explicitly share the new child
+as a fallback. Preserve the anti-replay ledger, pinned identities, full B DTOs,
+writer store and complete mutation window. Current fresh readers use the same
+iPad and remain preliminary, not independent-device evidence. See
 [the V01 guide](docs/features/v01-control.md) for execution and evidence rules. Keep direct framework evidence distinct
 from GraphEvo integration, and local save completion distinct from cloud sync.
 Keep temporary stores within the laboratory namespace, detach stores before

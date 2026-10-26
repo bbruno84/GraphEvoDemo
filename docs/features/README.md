@@ -6,6 +6,8 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [V01 incremental membership](v01-incremental-membership.md)
+- [Standalone V03 local concurrency probe](../../Experiments/ConcurrencyProbe/README.md)
 - [V02 initial cross-account smoke](v02-cross-account-smoke.md)
 - [V01 T6 owner-only shares](v01-owner-only-shares.md)
 - [V01 T5 independent owners](v01-independent-owners.md)

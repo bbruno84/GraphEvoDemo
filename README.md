@@ -36,6 +36,9 @@ share zones plus fresh-store recovery on the same iPad. A later
 [independent iPhone reader](docs/results/v01-t6-independent-reader-2026-10-24.md)
 recovered the exact fixture and share identities. Both graphs downloaded into
 one SQLite; selective synchronization and broader R01 requirements remain open.
+[V01 incremental membership](docs/features/v01-incremental-membership.md) now has
+separate relation/save-only add, update, delete, reopen and fresh-reader stages.
+Its local tests do not imply cloud success; a same-iPad reader is preliminary.
 [Initial V02 instrumentation](docs/features/v02-cross-account-smoke.md) adds a
 private cross-account invitation/acceptance, one participant edit, owner
 observation and existing-store reopen. Hardware results remain separate from
@@ -44,6 +47,9 @@ The [first V02 smoke result](docs/results/v02-cross-account-smoke-2026-10-26.md)
 observed A-only shared recovery on the different-account XR, return of its edit
 to the owner, unchanged owner-only B and reopening of both sides' existing stores.
 T3–T4 and V03–V08 remain unimplemented.
+The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
+is a standalone macOS Swift 6 package with eight local tests. It does not
+implement the app's V03 flow, test CloudKit or certify GraphEvo v1 under Swift 6.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.
 
