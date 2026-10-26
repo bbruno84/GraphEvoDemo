@@ -4,7 +4,10 @@ Status: **V02.7 PARTIAL: reinvitation, reacceptance and participant A3→A0
 observed; complete owner-only lifecycle criterion not satisfied**. The initial owner verification
 retained A/B data but still exposed two participants for A and failed its strict
 owner-only precondition. A subsequent 120-second read-only owner verification retained the same data
-and the same two-participant A snapshot, and failed the same precondition. Do not label the whole case passed or turn that failure into
+and the same two-participant A snapshot, and failed the same precondition.
+The nonowner acceptance status in both owner reports was `pending` (raw 1),
+whereas the XR reacceptance and pre-leave snapshots showed `accepted` (raw 2).
+Participant count alone omits this meaningful public-metadata difference. Do not label the whole case passed or turn that failure into
 a server-membership conclusion.
 
 ## Fixture and operation
@@ -37,13 +40,14 @@ no owner-private purge, nil-store operation, object rewrite or repeated leave.
 The first owner verification reopened its original stores for a 30-second
 readiness window. All five values, links, record/share IDs and complete B DTOs
 matched the pre-reinvitation fixture; A's public Core Data share snapshot still
-contained two participants. The stage reported `GraphEvoDemo.V02Error:5`
+contained two participants, with the nonowner now `pending` (raw 1), rather than
+the XR pre-leave `accepted` (raw 2). The stage reported `GraphEvoDemo.V02Error:5`
 (`invalidFixture`) because it requires A owner-only before verification. Its
 `ownerPreserved=false` is not evidence of lost data: the combined predicate also
 requires owner-only membership, and the raw rows retain the unchanged data.
 A subsequent owner process performed only a longer 120-second readiness check
 (08:15:48–08:17:50 UTC). It again retained all five original values, links,
-record/share IDs and unchanged B, but A still listed two participants. It ended
+record/share IDs and unchanged B, but A still listed two participants with the nonowner `pending` (raw 1). It ended
 with the same `invalidFixture` error. Both verification processes were stopped
 after evidence retention. No repair, participant removal or other owner mutation
 followed.
@@ -95,5 +99,8 @@ bounded and do not certify server completion.
 Private archive:
 `2026-10-26-V02-lifecycle-88DA5EBE-FBD8-4A71-8B0F-E6D959703807` under the local
 GraphEvoLab evidence directory. Raw device reports, logs and sensitive transport
-artifacts remain outside Git. No GraphEvo facade lifecycle, general access
+artifacts remain outside Git. The separate [read-only post-leave probe](../features/v02-post-leave-recovery.md)
+will record old-URL metadata and fresh-replica automatic recovery without
+accepting again. It does not replace these retained strict-criterion failures.
+No GraphEvo facade lifecycle, general access
 revocation deadline, offline behavior or complete V02 matrix is certified.

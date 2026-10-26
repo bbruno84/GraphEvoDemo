@@ -4,7 +4,9 @@ The [first hardware observation](../results/v02-reinvite-voluntary-leave-2026-10
 recovered A after a new pending invitation and observed participant A3→A0 after
 leave. Owner-only verification failed in both a 30-second check and a subsequent
 120-second read-only check while all owner data remained intact. V02.7 is partial;
-the complete lifecycle criterion remains open.
+the complete lifecycle criterion remains open. The owner reports show the
+nonowner as pending, whereas pre-leave XR snapshots show accepted; inspect
+acceptance status separately from participant count.
 
 This CLI-only framework control reuses the original V02 owner and participant
 private/shared SQLite files after a completed revocation. It introduces no
