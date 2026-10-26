@@ -177,6 +177,10 @@ for the relation/save-only A-003 control. Do not explicitly share the new child
 as a fallback. Preserve the anti-replay ledger, pinned identities, full B DTOs,
 writer store and complete mutation window. Current fresh readers use the same
 iPad and remain preliminary, not independent-device evidence. See
+the [observed incremental result](docs/results/v01-incremental-membership-2026-10-26.md)
+for the relation/save-only 5→6→5 cycle. Preserve the unstarted metadata-preflight
+attempt and the bounded read-only readiness fix as separate source/evidence
+boundaries; do not call that preflight a native membership rejection. See
 [the V01 guide](docs/features/v01-control.md) for execution and evidence rules. Keep direct framework evidence distinct
 from GraphEvo integration, and local save completion distinct from cloud sync.
 Keep temporary stores within the laboratory namespace, detach stores before

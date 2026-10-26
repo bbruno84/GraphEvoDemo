@@ -1,6 +1,9 @@
 # V01: relationship-only incremental membership
 
-Status: **instrumented and locally tested; hardware observations are separate**.
+Status: **5→6→5 and fresh-store recovery observed on the same iPad**; see the
+[retained result](../results/v01-incremental-membership-2026-10-26.md).
+Independent-device recovery remains open. Local tests alone do not establish
+the native behavior; the physical result and source boundaries are separate.
 This control fills the incremental-membership gap after initial
 [T6 owner-only share creation](v01-owner-only-shares.md). It uses the unchanged
 T6 root/child model and direct frameworks, not GraphEvo facade APIs.

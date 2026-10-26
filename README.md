@@ -38,7 +38,9 @@ recovered the exact fixture and share identities. Both graphs downloaded into
 one SQLite; selective synchronization and broader R01 requirements remain open.
 [V01 incremental membership](docs/features/v01-incremental-membership.md) now has
 separate relation/save-only add, update, delete, reopen and fresh-reader stages.
-Its local tests do not imply cloud success; a same-iPad reader is preliminary.
+Its [observed 5→6→5 result](docs/results/v01-incremental-membership-2026-10-26.md)
+retains same-iPad fresh readers and unchanged identities/B. These readers are
+preliminary, not independent-device evidence.
 [Initial V02 instrumentation](docs/features/v02-cross-account-smoke.md) adds a
 private cross-account invitation/acceptance, one participant edit, owner
 observation and existing-store reopen. Hardware results remain separate from
