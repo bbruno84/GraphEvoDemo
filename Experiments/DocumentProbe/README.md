@@ -66,3 +66,21 @@ not mean this observation requirement was satisfied. Native related-property
 invalidation, cross-device imports, history replay and broader Watch design
 remain open. The sample interval is not a guarantee that no later callback can
 occur on another runtime or under another workload.
+
+## V08 recovery comparisons
+
+Four recovery checks bring this package to fifteen tests. The suite records one
+**known failed guarantee**: direct Core Data metadata inspection with a read-only
+option changes the SQLite `.shm` sidecar on the observed runtime. Its failed
+`before == after` expectation is retained with `withKnownIssue`, and the original
+failing run/diagnosis logs remain in the external evidence archive. A green test
+runner with this known issue must not be reported as fifteen satisfied behaviors.
+
+An incompatible native open (automatic migration disabled) returned Cocoa error
+134100, preserved the logical data and original model, but also changed `.shm`.
+A bad parent path returned Cocoa error 258 without a replacement store or damage
+to the sentinel file. A separate candidate inspected metadata on a full copy of
+the **closed** fixture and preserved all original files byte-for-byte. This does
+not establish a live-copy/backup protocol or modify GraphEvo's store-opening
+behavior. Recovery fixture digests concern their flat SQLite family; ambiguous
+filenames are rejected instead of silently overwritten in the comparison.
