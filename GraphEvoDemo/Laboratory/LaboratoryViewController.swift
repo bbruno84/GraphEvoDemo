@@ -24,7 +24,7 @@ final class LaboratoryViewController: UITableViewController {
         observationToken = nil
     }
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { LaboratoryExperiment.planned.count + 3 }
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { LaboratoryExperiment.catalog.count + 3 }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell(style: .subtitle, reuseIdentifier: nil)
@@ -43,11 +43,13 @@ final class LaboratoryViewController: UITableViewController {
             cell.textLabel?.text = session.message
             cell.detailTextLabel?.text = "Tap to view or share this run's report."
         default:
-            let experiment = LaboratoryExperiment.planned[indexPath.row - 3]
+            let experiment = LaboratoryExperiment.catalog[indexPath.row - 3]
             cell.textLabel?.text = "\(experiment.id) — \(experiment.title)"
-            cell.detailTextLabel?.text = experiment.id == "V01"
-                ? "T0 observed; T1 rejected and protected; T2 not run. T5: independent one-store owners and fresh peer."
-                : "Not run · implementation and framework/integration boundary pending"
+            switch experiment.id {
+            case "V01": cell.detailTextLabel?.text = "T0/T5/T6 observations retained; T1 rejected and protected. Direct-framework evidence is separate from integration."
+            case "V02": cell.detailTextLabel?.text = "Initial cross-account smoke instrumented via CLI. Invite/accept, participant edit and existing-store reopen. Hardware result not implied."
+            default: cell.detailTextLabel?.text = "Not run · implementation and framework/integration boundary pending"
+            }
             cell.selectionStyle = .none
         }
         if indexPath.row < 3 { cell.accessibilityTraits.insert(.button) }

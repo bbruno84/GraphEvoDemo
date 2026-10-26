@@ -6,7 +6,9 @@ struct LaboratoryExperiment {
     let id: String
     let title: String
 
-    static let planned = [
+    var hasInstrumentation: Bool { id == "V01" || id == "V02" }
+
+    static let catalog = [
         LaboratoryExperiment(id: "V01", title: "Cloud separation of independent graphs"),
         LaboratoryExperiment(id: "V02", title: "Sharing between separate accounts"),
         LaboratoryExperiment(id: "V03", title: "Concurrency and local transactions"),
@@ -52,7 +54,7 @@ final class LaboratorySession {
     private(set) var report: LaboratoryReport?
     private(set) var reportURL: URL?
     private(set) var workspaceURL: URL?
-    private(set) var message = "V01–V08 are not implemented and have not run."
+    private(set) var message = "V00 local check not run. V01 and initial V02 instrumentation have separate CLI stages; V03–V08 remain planned."
     private var observers: [UUID: () -> Void] = [:]
     private var reportIsCurrentOnDisk = false
     private let root: URL

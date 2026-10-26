@@ -130,14 +130,17 @@ final class LaboratoryTests: XCTestCase {
         XCTAssertNotNil(laboratory)
         laboratory?.loadViewIfNeeded()
         if let laboratory {
-            for row in 4..<11 {
+            let v02 = laboratory.tableView(laboratory.tableView, cellForRowAt: IndexPath(row: 4, section: 0))
+            XCTAssertTrue(v02.detailTextLabel?.text?.contains("smoke instrumented via CLI") == true)
+            for row in 5..<11 {
                 let cell = laboratory.tableView(laboratory.tableView, cellForRowAt: IndexPath(row: row, section: 0))
                 XCTAssertTrue(cell.detailTextLabel?.text?.hasPrefix("Not run") == true)
             }
         }
     }
 
-    func testPlannedExperimentsRemainUnimplemented() {
-        XCTAssertEqual(LaboratoryExperiment.planned.map(\.id), (1...8).map { String(format: "V%02d", $0) })
+    func testCatalogDistinguishesInitialInstrumentationFromPlannedExperiments() {
+        XCTAssertEqual(LaboratoryExperiment.catalog.map(\.id), (1...8).map { String(format: "V%02d", $0) })
+        XCTAssertEqual(LaboratoryExperiment.catalog.filter(\.hasInstrumentation).map(\.id), ["V01", "V02"])
     }
 }
