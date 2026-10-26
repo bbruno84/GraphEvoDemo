@@ -277,7 +277,7 @@ final class V02CloudStore: V02StoreAccess {
         return request
     }
 
-    nonisolated private static func shareInfo(_ share: CKShare, currentUser: CKRecord.ID, runID: UUID) -> V02ShareInfo {
+    nonisolated static func shareInfo(_ share: CKShare, currentUser: CKRecord.ID, runID: UUID) -> V02ShareInfo {
         V02ShareInfo(id: .make(share.recordID, currentUser: currentUser, runID: runID), publicPermission: share.publicPermission.rawValue,
             currentUserRole: share.currentUserParticipant?.role.rawValue, currentUserPermission: share.currentUserParticipant?.permission.rawValue,
             currentUserAcceptance: share.currentUserParticipant?.acceptanceStatus.rawValue,

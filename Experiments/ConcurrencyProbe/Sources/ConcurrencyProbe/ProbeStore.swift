@@ -15,6 +15,18 @@ public enum ProbeError: Error, Equatable {
     case missingStore
 }
 
+/// The caller task's cancellation state is not inherited by a Core Data
+/// perform closure. A cancellation handler carries it to the commit boundary.
+private final class CommitCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    func cancel() { lock.withLock { cancelled = true } }
+    func check() throws {
+        if lock.withLock({ cancelled }) { throw CancellationError() }
+    }
+}
+
 /// A candidate ownership experiment, not a GraphEvo API or CloudKit stack.
 /// One private context serializes read/modify/save, even when actor calls reenter.
 public actor ProbeStore {
@@ -58,30 +70,43 @@ public actor ProbeStore {
     }
 
     /// Cancellation is checked before enqueue, not represented as a post-commit rollback.
-    public func increment(_ key: String, rollback: Bool = false, checkCancellation: Bool = true) async throws -> ProbeValue {
+    public func increment(
+        _ key: String,
+        rollback: Bool = false,
+        checkCancellation: Bool = true,
+        checkCancellationBeforeCommit: Bool = false,
+        beforeCommit: (@Sendable () -> Void)? = nil
+    ) async throws -> ProbeValue {
         guard !closed else { throw ProbeError.closed }
         if checkCancellation { try Task.checkCancellation() }
         let context = writer
-        return try await context.perform {
-            do {
-                let request = NSFetchRequest<NSManagedObject>(entityName: "ProbeItem")
-                request.predicate = NSPredicate(format: "key == %@", key)
-                let matches = try context.fetch(request)
-                guard matches.count < 2 else { throw ProbeError.duplicateKey }
-                let object = matches.first ?? NSEntityDescription.insertNewObject(forEntityName: "ProbeItem", into: context)
-                object.setValue(key, forKey: "key")
-                let next = (object.value(forKey: "value") as? NSNumber)?.int64Value ?? 0
-                object.setValue(next + 1, forKey: "value")
-                if rollback { throw ProbeError.deliberateRollback }
-                try context.save()
-                let result = ProbeValue(key: key, value: next + 1, executedOnMainThread: Thread.isMainThread)
-                context.reset()
-                return result
-            } catch {
-                context.rollback()
-                context.reset()
-                throw error
+        let cancellation = CommitCancellation()
+        return try await withTaskCancellationHandler {
+            try await context.perform {
+                do {
+                    let request = NSFetchRequest<NSManagedObject>(entityName: "ProbeItem")
+                    request.predicate = NSPredicate(format: "key == %@", key)
+                    let matches = try context.fetch(request)
+                    guard matches.count < 2 else { throw ProbeError.duplicateKey }
+                    let object = matches.first ?? NSEntityDescription.insertNewObject(forEntityName: "ProbeItem", into: context)
+                    object.setValue(key, forKey: "key")
+                    let next = (object.value(forKey: "value") as? NSNumber)?.int64Value ?? 0
+                    object.setValue(next + 1, forKey: "value")
+                    beforeCommit?()
+                    if rollback { throw ProbeError.deliberateRollback }
+                    if checkCancellationBeforeCommit { try cancellation.check() }
+                    try context.save()
+                    let result = ProbeValue(key: key, value: next + 1, executedOnMainThread: Thread.isMainThread)
+                    context.reset()
+                    return result
+                } catch {
+                    context.rollback()
+                    context.reset()
+                    throw error
+                }
             }
+        } onCancel: {
+            cancellation.cancel()
         }
     }
 

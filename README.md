@@ -80,7 +80,13 @@ observed owner addition and deletion after sharing. A normal participant
 insertion crashed in its [first run](docs/results/v02-incremental-shared-members-2026-10-26.md);
 a separate [explicit existing-share assignment](docs/results/v02-participant-explicit-members-2026-10-26.md)
 recovered the new member across accounts.
-T3–T4 and V03–V08 remain unimplemented.
+[V09 graph and file probe](docs/features/v09-graph-file-probe.md) exercises a
+disposable Entity/Relationship/Action-equivalent graph and Core Data binary
+attachments across the same private share. Its
+[physical-device result](docs/results/v09-graph-file-2026-10-26.md) records
+exact cross-account recovery and remaining limits.
+T3–T4 remain unexecuted. V03 and V05 have partial experimental evidence;
+V04 and V06–V08 remain outside the current pre-specification gate.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not
 implement the app's V03 flow, test CloudKit or certify GraphEvo v1 under Swift 6.

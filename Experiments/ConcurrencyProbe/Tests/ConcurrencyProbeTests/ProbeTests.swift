@@ -8,6 +8,26 @@ private func fixture() throws -> URL {
     return directory.appendingPathComponent("probe.sqlite")
 }
 
+/// Holds one private-context operation at the commit boundary so cancellation
+/// and close can be tested without relying on timing or a busy device.
+private final class CommitGate: @unchecked Sendable {
+    private let entered = DispatchSemaphore(value: 0)
+    private let released = DispatchSemaphore(value: 0)
+
+    func hold() {
+        entered.signal()
+        released.wait()
+    }
+
+    private func waitForEntry() { entered.wait() }
+
+    func waitUntilEntered() async {
+        await Task.detached { self.waitForEntry() }.value
+    }
+
+    func release() { released.signal() }
+}
+
 @Test func concurrentReadModifySaveHasNoLostUpdates() async throws {
     let url = try fixture()
     let store = try await ProbeStore.open(at: url)
@@ -121,5 +141,55 @@ private func fixture() throws -> URL {
     let persisted = try await store.value(for: "committed")
     #expect(persisted?.value == 1)
     try await store.close()
+    try FileManager.default.removeItem(at: url.deletingLastPathComponent())
+}
+
+@Test func cancellationDuringNativeWorkDoesNotUndoAnUncooperativeSave() async throws {
+    let url = try fixture(), store = try await ProbeStore.open(at: url)
+    let gate = CommitGate()
+    let task = Task { try await store.increment("native-in-flight", beforeCommit: { gate.hold() }) }
+    await gate.waitUntilEntered()
+    task.cancel()
+    gate.release()
+    let result = try await task.value
+    #expect(result.value == 1)
+    let persisted = try await store.value(for: "native-in-flight")
+    #expect(persisted?.value == 1)
+    try await store.close()
+    try FileManager.default.removeItem(at: url.deletingLastPathComponent())
+}
+
+@Test func cooperativeCancellationAtCommitRollsBack() async throws {
+    let url = try fixture(), store = try await ProbeStore.open(at: url)
+    let gate = CommitGate()
+    let task = Task {
+        try await store.increment("cancel-before-save", checkCancellationBeforeCommit: true,
+                                  beforeCommit: { gate.hold() })
+    }
+    await gate.waitUntilEntered()
+    task.cancel()
+    gate.release()
+    do { _ = try await task.value; Issue.record("A cancelled operation must not save after its explicit commit check") }
+    catch { #expect(error is CancellationError) }
+    let value = try await store.value(for: "cancel-before-save")
+    #expect(value == nil)
+    try await store.close()
+    try FileManager.default.removeItem(at: url.deletingLastPathComponent())
+}
+
+@Test func closeWaitsForAnAlreadyRunningCommit() async throws {
+    let url = try fixture(), store = try await ProbeStore.open(at: url)
+    let gate = CommitGate()
+    let write = Task { try await store.increment("closing", beforeCommit: { gate.hold() }) }
+    await gate.waitUntilEntered()
+    let close = Task { try await store.close() }
+    gate.release()
+    let saved = try await write.value
+    try await close.value
+    #expect(saved.value == 1)
+    let reopened = try await ProbeStore.open(at: url)
+    let durable = try await reopened.value(for: "closing")
+    #expect(durable?.value == 1)
+    try await reopened.close()
     try FileManager.default.removeItem(at: url.deletingLastPathComponent())
 }

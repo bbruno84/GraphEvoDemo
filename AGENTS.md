@@ -202,10 +202,14 @@ public container API with A's existing share, and only then links the object
 to A-root. Keep this path distinct from normal relationship/save mutation;
 see [the control](docs/results/v02-participant-explicit-members-2026-10-26.md).
 Judge app-visible A3→A0 on the same open participant stores and retained owner
-A/B. History is accessory and never a causal/completion barrier. Do not start
-new V03–V08 explorations: standalone earlier packages remain historical local
-evidence, not requirements for the sharing objective.
-T3–T4 and V03–V08 remain unimplemented. See
+A/B. History is accessory and never a causal/completion barrier. The current
+pre-specification experiments cover Swift 6 concurrency, realistic shared
+graph dependencies and native files. V09 uses a separate disposable model and
+one-use stage tickets; see [the V09 guide](docs/features/v09-graph-file-probe.md).
+Do not replay a reserved V09 write, invitation or acceptance. Compare exact
+graph values, file checksums and B isolation on independent devices. Keep
+identity/invitation envelopes in the protected app-data boundary and never
+commit or print them. T3–T4 remain unexecuted. See
 `Experiments/ConcurrencyProbe/README.md` for the separate macOS-only Swift 6
 prototype; its eight tests are not part of the iOS app suite or CloudKit evidence.
 Do not infer app V03 implementation or GraphEvo v1 Swift 6 compatibility from it. See
