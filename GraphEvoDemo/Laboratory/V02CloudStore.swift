@@ -553,3 +553,28 @@ extension V02CloudStore: V02LifecycleStoreAccess {
         return nil // A nil zone with no error is retained, not silently interpreted as data removal.
     }
 }
+
+extension V02CloudStore: V02LeaveRecoveryStoreAccess {
+    func invitationMetadata(_ invitation: V02Envelope, runID: UUID, priorCaseID: UUID, container: String) async throws -> V02LeaveMetadata {
+        try invitation.validate(runID: runID, container: container, purpose: "lifecycle-invitation")
+        guard invitation.caseID == priorCaseID, let expected = invitation.share, let url = invitation.shareURL,
+              invitation.account.recordID == currentUser || invitation.recipient?.recordID == currentUser,
+              url.scheme == "https", ["icloud.com", "www.icloud.com"].contains(url.host?.lowercased() ?? ""),
+              url.path.hasPrefix("/share/") else { throw V02Error.invalidEnvelope }
+        var result = V02LeaveMetadata(requestedAt: Date())
+        do {
+            let metadata = try await CKContainer(identifier: container).shareMetadata(for: url)
+            result.returnedMetadata = true
+            result.participantStatus = metadata.participantStatus.rawValue
+            result.participantRole = metadata.participantRole.rawValue
+            result.participantPermission = metadata.participantPermission.rawValue
+            result.publicPermission = metadata.share.publicPermission.rawValue
+            result.containerMatches = metadata.containerIdentifier == container
+            result.ownerMatches = metadata.ownerIdentity.userRecordID == invitation.account.recordID
+            result.shareMatches = expected.matches(metadata.share.recordID, shareOwner: invitation.account.recordID)
+            result.shareID = V02RecordKey.make(metadata.share.recordID, currentUser: invitation.account.recordID, runID: runID)
+        } catch { result.errors = V02PublicReadError.capture(error) }
+        result.completedAt = Date()
+        return result
+    }
+}

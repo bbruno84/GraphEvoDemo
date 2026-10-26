@@ -172,6 +172,11 @@ reuse original stores and the authorized recipient. Keep case-scoped invitation
 artifacts separate. Leave requires a known A3 fixture, private-user role and
 explicit shared store; never pass a nil store or an owner-private store to purge.
 Record already-accepted metadata without replaying acceptance.
+The [post-leave recovery probe](docs/features/v02-post-leave-recovery.md) is
+read-only: a new case uses fresh isolated stores and the protected prior-case
+URL, with no invitation, acceptance, seed, edit or purge. Never reuse its path.
+Retain typed metadata results and exact acceptance status; pending is not accepted.
+Negative bounded recovery and metadata errors cannot establish permanent denial.
 Judge app-visible A3→A0 on the same open participant stores and retained owner
 A/B. History is accessory and never a causal/completion barrier. Do not start
 new V03–V08 explorations: standalone earlier packages remain historical local
