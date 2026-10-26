@@ -325,3 +325,56 @@ extension V02CloudStore: V01MembershipStoreAccess {
         }
     }
 }
+
+extension V02CloudStore: V02PermissionStoreAccess {
+    func changeParticipantPermission(runID: UUID, recipient: V02PrivateID, from oldPermission: CKShare.ParticipantPermission,
+                                     to newPermission: CKShare.ParticipantPermission, checkpoint: () throws -> Void) async throws {
+        guard scopes == V02Scope.allCases, let cloud = owner as? NSPersistentCloudKitContainer,
+              let store = stores[.privateStore] else { throw V02Error.missingStores }
+        let share = try rootShare("A", runID: runID)
+        let others = share.participants.filter { $0.role != .owner }
+        guard share.publicPermission == .none, share.participants.filter({ $0.role == .owner }).count == 1,
+              others.count == 1, let participant = others.first, participant.role == .privateUser,
+              participant.acceptanceStatus == .accepted, participant.permission == oldPermission,
+              participant.userIdentity.userRecordID == recipient.recordID,
+              T6Share(try rootShare("B", runID: runID)).nonOwnerCount == 0 else { throw V02Error.unexpectedParticipant }
+        participant.permission = newPermission
+        try checkpoint()
+        let saved = try await persist(share, store: store, cloud: cloud, graph: "A")
+        guard saved.publicPermission == .none, saved.participants.filter({ $0.role != .owner }).count == 1,
+              saved.participants.first(where: { $0.userIdentity.userRecordID == recipient.recordID })?.permission == newPermission else { throw V02Error.invalidShare }
+    }
+
+    func attemptReadOnlySave(runID: UUID) async throws -> V02ReadOnlyAttempt {
+        let before = try await snapshot(runID: runID)
+        guard localOnly ? V02Fixture.exact(before, owner: false, edited: true, requireShares: false)
+            : V02PermissionFixture.exact(before, owner: false, permission: .readOnly),
+              let owner, let url = stores[.sharedStore]?.url else { throw V02Error.editNotReady }
+        let context = owner.newBackgroundContext()
+        let cloud = owner as? NSPersistentCloudKitContainer
+        var result = try await context.perform {
+            defer { context.reset() } // Discard only pending changes after failure; never restore persisted values.
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
+            let objects = try context.fetch(Self.request(runID, store: store))
+                .filter { $0.value(forKey: "node") as? String == "A-001" && $0.value(forKey: "graph") as? String == "A" }
+            guard objects.count == 1, let object = objects.first,
+                  object.value(forKey: "value") as? String == V02Fixture.editedValue else { throw V02Error.editNotReady }
+            return V02ReadOnlyAttempt.perform(canUpdate: cloud?.canUpdateRecord(forManagedObjectWith: object.objectID),
+                canModify: cloud?.canModifyManagedObjects(in: store), valueBefore: object.value(forKey: "value") as? String) {
+                object.setValue(V02PermissionFixture.attemptedValue, forKey: "value")
+                try context.save() // Exactly one real attempt, even if canUpdateRecord returned false.
+            }
+        }
+        let fresh = owner.newBackgroundContext()
+        do {
+            result.freshContextValue = try await fresh.perform {
+                defer { fresh.reset() }
+                guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
+                let objects = try fresh.fetch(Self.request(runID, store: store)).filter { $0.value(forKey: "node") as? String == "A-001" }
+                guard objects.count == 1 else { throw V02Error.invalidFixture }
+                return objects[0].value(forKey: "value") as? String
+            }
+        } catch { result.freshReadErrors = [v01ErrorCode(error)] }
+        return result
+    }
+}
