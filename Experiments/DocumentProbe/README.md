@@ -41,3 +41,28 @@ therefore does not certify a frozen query snapshot or stable pagination under
 arbitrary sort-key edits. Cycles, bounded traversal, large datasets, remote
 imports and observation remain later checks. Results must be linked from the
 GraphEvo 2 execution register with these limits intact.
+
+## V07 observation comparison
+
+Four additional tests bring this package to eleven tests. A separate tiny
+schema and a main-queue NSFetchedResultsController observe actual background
+context saves. Its Objective-C delegate uses an audited MainActor assumption
+because that controller is constructed only with a main-queue context. Context
+objects are never sent through the AsyncThrowingStream; consumers receive value
+arrays. Keep the handle alive and explicitly cancel it before closing the probe.
+
+The checks exercise insertion/value/order/deletion results, bufferingNewest(1)
+for a slow consumer, cancellation/resubscription, and relationship-dependent
+membership compared with a fresh SQL fetch. On the recorded Mac, eleven state
+publications coalesced to one buffered latest state with ten dropped batches.
+This is suitable evidence about state buffering, not durable event delivery.
+
+The relationship comparison deliberately records a limitation rather than
+adding a hidden invalidation workaround: after changing only a child's title,
+fresh SQL excluded the parent, but the existing fetched-results controller
+still contained it and had published only its initial snapshot, including after
+25 local ten-millisecond sampling intervals. A passing comparative test does
+not mean this observation requirement was satisfied. Native related-property
+invalidation, cross-device imports, history replay and broader Watch design
+remain open. The sample interval is not a guarantee that no later callback can
+occur on another runtime or under another workload.
