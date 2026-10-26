@@ -2,7 +2,8 @@ import Foundation
 import CloudKit
 
 nonisolated enum V02MutationPhase: String, Codable {
-    case original, ownerAdded, ownerDeleted, participantAdded, participantDeleted
+    case original, ownerAdded, ownerDeleted, participantAdded, participantDeleted,
+         participantExplicitAdded, participantExplicitDeleted
 }
 
 nonisolated enum V02MutationRole: String, Codable, CaseIterable {
@@ -15,21 +16,28 @@ nonisolated enum V02MutationRole: String, Codable, CaseIterable {
     case participantDelete = "participant-delete"
     case ownerSeeParticipantDelete = "owner-see-participant-delete"
     case participantConfirmOwnerAdd = "participant-confirm-owner-add"
+    case participantExplicitAdd = "participant-explicit-add"
+    case ownerSeeParticipantExplicitAdd = "owner-see-participant-explicit-add"
+    case participantExplicitDelete = "participant-explicit-delete"
+    case ownerSeeParticipantExplicitDelete = "owner-see-participant-explicit-delete"
 
     var isOwner: Bool {
         switch self {
-        case .ownerAdd, .ownerDelete, .ownerSeeParticipantAdd, .ownerSeeParticipantDelete: true
+        case .ownerAdd, .ownerDelete, .ownerSeeParticipantAdd, .ownerSeeParticipantDelete,
+             .ownerSeeParticipantExplicitAdd, .ownerSeeParticipantExplicitDelete: true
         default: false
         }
     }
-    var writes: Bool { [.ownerAdd, .ownerDelete, .participantAdd, .participantDelete].contains(self) }
+    var writes: Bool { [.ownerAdd, .ownerDelete, .participantAdd, .participantDelete,
+                         .participantExplicitAdd, .participantExplicitDelete].contains(self) }
     var before: V02MutationPhase {
         switch self {
-        case .ownerAdd, .participantSeeOwnerAdd: .original
+        case .ownerAdd, .participantSeeOwnerAdd, .participantExplicitAdd, .ownerSeeParticipantExplicitAdd: .original
         case .participantConfirmOwnerAdd: .ownerAdded
         case .ownerDelete, .participantSeeOwnerDelete: .ownerAdded
         case .participantAdd, .ownerSeeParticipantAdd: .ownerDeleted
         case .participantDelete, .ownerSeeParticipantDelete: .participantAdded
+        case .participantExplicitDelete, .ownerSeeParticipantExplicitDelete: .participantExplicitAdded
         }
     }
     var after: V02MutationPhase {
@@ -38,6 +46,8 @@ nonisolated enum V02MutationRole: String, Codable, CaseIterable {
         case .ownerDelete, .participantSeeOwnerDelete: .ownerDeleted
         case .participantAdd, .ownerSeeParticipantAdd: .participantAdded
         case .participantDelete, .ownerSeeParticipantDelete: .participantDeleted
+        case .participantExplicitAdd, .ownerSeeParticipantExplicitAdd: .participantExplicitAdded
+        case .participantExplicitDelete, .ownerSeeParticipantExplicitDelete: .participantExplicitDeleted
         }
     }
 }
@@ -78,11 +88,11 @@ nonisolated enum V02MutationFixture {
         if phase == .ownerAdded {
             expected.append(("A", "A-003", "item", "owner-delta", "A-root", []))
         }
-        if phase == .participantAdded {
+        if phase == .participantAdded || phase == .participantExplicitAdded {
             expected.append(("A", "A-004", "item", "participant-delta", "A-root", []))
         }
         guard rows.count == expected.count else { return false }
-        let ownerEdited = phase != .original
+        let ownerEdited = phase != .original && phase != .participantExplicitAdded && phase != .participantExplicitDeleted
         let participantEdited = phase == .participantAdded || phase == .participantDeleted
         for target in expected {
             let matches = rows.filter { $0.node == target.node }
@@ -90,7 +100,7 @@ nonisolated enum V02MutationFixture {
             var children = target.children
             if target.node == "A-root" {
                 if phase == .ownerAdded { children.append("A-003") }
-                if phase == .participantAdded { children.append("A-004") }
+                if phase == .participantAdded || phase == .participantExplicitAdded { children.append("A-004") }
             }
             let value = target.node == "A-001" && ownerEdited ? ownerValue :
                 target.node == "A-002" && participantEdited ? participantValue : target.value
@@ -110,7 +120,7 @@ nonisolated enum V02MutationFixture {
         }
         guard rows.allSatisfy({ row in rows.filter { $0.record == row.record }.count == 1 }) else { return false }
         let a = rows.filter { $0.graph == "A" }.compactMap(\.share)
-        guard a.count == (phase == .ownerAdded || phase == .participantAdded ? 4 : 3),
+        guard a.count == (phase == .ownerAdded || phase == .participantAdded || phase == .participantExplicitAdded ? 4 : 3),
               a.allSatisfy({ $0.id == a.first?.id }) else { return false }
         if owner {
             let b = rows.filter { $0.graph == "B" }.compactMap(\.share)
@@ -128,7 +138,8 @@ nonisolated enum V02MutationFixture {
             guard let current = rows.first(where: { $0.node == old.node }),
                   current.record == old.record, current.share?.id == old.share?.id else { return false }
         }
-        let addedNode = phase == .ownerAdded ? "A-003" : phase == .participantAdded ? "A-004" : nil
+        let addedNode = phase == .ownerAdded ? "A-003" :
+            (phase == .participantAdded || phase == .participantExplicitAdded ? "A-004" : nil)
         if let addedNode {
             guard let added = rows.first(where: { $0.node == addedNode }),
                   added.share?.id == original.first(where: { $0.graph == "A" })?.share?.id,

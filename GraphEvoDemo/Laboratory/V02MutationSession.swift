@@ -142,7 +142,9 @@ final class V02MutationSession {
             let prior = state!.original
             let pinnedRecord = request.role.after == .ownerAdded ? state!.ownerAddedRecord : state!.participantAddedRecord
             if request.role.writes {
-                report?.phase = "Applying exactly one supported Core Data mutation; no share API call"
+                report?.phase = request.role == .participantExplicitAdd
+                    ? "Assigning one new object to the existing share using the public container API"
+                    : "Applying exactly one supported Core Data mutation; no share API call"
                 try persist()
                 try await opened.mutate(request.role, runID: request.runID)
                 report?.mutationSaved = true
@@ -175,7 +177,7 @@ final class V02MutationSession {
             if request.role.after == .ownerAdded {
                 state!.ownerAddedRecord = report?.members.first(where: { $0.node == "A-003" })?.record
             }
-            if request.role.after == .participantAdded {
+            if request.role.after == .participantAdded || request.role.after == .participantExplicitAdded {
                 state!.participantAddedRecord = report?.members.first(where: { $0.node == "A-004" })?.record
             }
             state!.phase = request.role.after; state!.reservedRole = nil

@@ -1,10 +1,11 @@
 # V02 — incremental members in an accepted private share
 
-Status: owner add/delete observed across accounts; participant insertion stopped
-with an XR crash before final report. See the
-[retained hardware result](../results/v02-incremental-shared-members-2026-10-26.md).
-The stage sequence below describes the intended control. Do not continue the
-crashed run with participant deletion or replay its write.
+Status: owner add/delete observed across accounts. A normal participant
+relationship/save insertion crashed in its first isolated run; a separate
+explicit existing-share assignment succeeded across accounts. See the
+[first result](../results/v02-incremental-shared-members-2026-10-26.md) and
+[explicit-assignment result](../results/v02-participant-explicit-members-2026-10-26.md).
+Do not continue the crashed run with participant deletion or replay its write.
 
 This CLI laboratory case tests normal Core Data relationship/save mutations
 after A has been shared with another account. It uses a new synthetic V02 run:
@@ -63,3 +64,28 @@ The test suite checks CLI guards, every expected phase, store/scope separation,
 identity preservation, one-shot mutation reservation and an already-open
 observer's transition. Only real-device reports can establish cross-account
 export/import. Keep protected identity and invitation envelopes outside Git.
+
+## Separate explicit-assignment control
+
+Use a **new** V02 run and case ID, with the original A3+B2 fixture accepted by
+the participant. Do not run `participant-edit` or any of the normal mutation
+roles above. Start `owner-see-participant-explicit-add`, wait for
+`readyForWriter=true`, then start `participant-explicit-add` with the same run
+and case IDs. The participant inserts an unconnected A-004 into its **shared**
+store, saves it, calls `NSPersistentCloudKitContainer.share([child], to:
+existingShare)` for A, links A-004 to A-root and saves again. The observer and
+writer retain their stores for the full configured window. Require matching
+A4 values, inverse links, record IDs and share IDs across accounts, unchanged
+owner B2, and no run rows in the participant private store.
+
+After both final reports pass, use the same run and case for a deletion pair:
+start `owner-see-participant-explicit-delete`, wait for readiness, then start
+`participant-explicit-delete`. This deletes A-004 through the participant's
+shared-store context without another share call. The owner must return to
+exact A3+B2; surviving identities and B must remain stable. Each role is
+reserved once. A failed or interrupted write requires a new run, not replay.
+
+An initial explicit-assignment attempt used the participant's private store
+for the unconnected object. It returned `NSCocoaErrorDomain:134060` and is an
+invalid comparison for adding to an existing share in the shared store. Its
+separate fixture was retained and never reused.

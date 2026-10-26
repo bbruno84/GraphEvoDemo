@@ -192,10 +192,15 @@ relationships and saves in the actor's explicit store, after checking public
 permission advice; do not call a share API for a new child as a fallback.
 The first cross-account mutation run retained a participant-insertion crash
 before final save evidence. Preserve that run and its original XR stores;
-never replay its reserved write. A separate fixture is required to compare
+never replay its reserved write. A separate fixture compared
 supported explicit existing-share assignment. The owner add/delete evidence
 and the participant's failed live-add window are distinct; see
 [the result](docs/results/v02-incremental-shared-members-2026-10-26.md).
+The subsequent explicit-assignment control uses another accepted run. It
+assigns a new unconnected participant object to the shared store, calls the
+public container API with A's existing share, and only then links the object
+to A-root. Keep this path distinct from normal relationship/save mutation;
+see [the control](docs/results/v02-participant-explicit-members-2026-10-26.md).
 Judge app-visible A3→A0 on the same open participant stores and retained owner
 A/B. History is accessory and never a causal/completion barrier. Do not start
 new V03–V08 explorations: standalone earlier packages remain historical local

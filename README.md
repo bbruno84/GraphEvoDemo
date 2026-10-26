@@ -76,10 +76,10 @@ that same pending URL on the original participant stores; its
 the exact A graph without a new invitation. Permanent access denial after a
 voluntary leave must therefore not be assumed.
 [Incremental cross-account sharing](docs/features/v02-incremental-shared-members.md)
-observed owner addition and deletion after sharing. Its
-[hardware result](docs/results/v02-incremental-shared-members-2026-10-26.md)
-also records a participant-insertion crash; participant-created members remain
-unverified.
+observed owner addition and deletion after sharing. A normal participant
+insertion crashed in its [first run](docs/results/v02-incremental-shared-members-2026-10-26.md);
+a separate [explicit existing-share assignment](docs/results/v02-participant-explicit-members-2026-10-26.md)
+recovered the new member across accounts.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not

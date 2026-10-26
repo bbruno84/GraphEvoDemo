@@ -24,7 +24,8 @@ final class V02MutationTests: XCTestCase {
     func testExactPhasesPreserveGraphIdentityAndRejectMixedScopes() {
         let run = UUID()
         let original = rows(run: run, ownerSide: true, phase: .original)
-        for phase in [V02MutationPhase.original, .ownerAdded, .ownerDeleted, .participantAdded, .participantDeleted] {
+        for phase in [V02MutationPhase.original, .ownerAdded, .ownerDeleted, .participantAdded,
+                      .participantDeleted, .participantExplicitAdded, .participantExplicitDeleted] {
             let ownerRows = rows(run: run, ownerSide: true, phase: phase)
             let participantRows = rows(run: run, ownerSide: false, phase: phase)
             XCTAssertTrue(V02MutationFixture.preserves(ownerRows, original: original, phase: phase, owner: true, addedRecord: nil))
@@ -114,7 +115,9 @@ final class V02MutationTests: XCTestCase {
     private func rows(run: UUID, ownerSide: Bool, phase: V02MutationPhase) -> [V02Row] {
         var fixture = V02Fixture.rows.filter { ownerSide || $0.graph == "A" }
         if phase == .ownerAdded { fixture.append(("A", "A-003", "item", "owner-delta", "A-root", [])) }
-        if phase == .participantAdded { fixture.append(("A", "A-004", "item", "participant-delta", "A-root", [])) }
+        if phase == .participantAdded || phase == .participantExplicitAdded {
+            fixture.append(("A", "A-004", "item", "participant-delta", "A-root", []))
+        }
         return fixture.map { row in
             let shareID = V02RecordKey.make(CKRecord.ID(recordName: "cloudkit.zoneshare",
                 zoneID: CKRecordZone.ID(zoneName: "zone-" + row.graph, ownerName: owner.recordName)), currentUser: owner, runID: run)
@@ -133,9 +136,10 @@ final class V02MutationTests: XCTestCase {
             var children = row.children
             if row.node == "A-root" {
                 if phase == .ownerAdded { children.append("A-003") }
-                if phase == .participantAdded { children.append("A-004") }
+                if phase == .participantAdded || phase == .participantExplicitAdded { children.append("A-004") }
             }
-            let value = row.node == "A-001" && phase != .original ? V02MutationFixture.ownerValue :
+            let value = row.node == "A-001" && phase != .original &&
+                phase != .participantExplicitAdded && phase != .participantExplicitDeleted ? V02MutationFixture.ownerValue :
                 row.node == "A-002" && [.participantAdded, .participantDeleted].contains(phase) ? V02MutationFixture.participantValue : row.value
             return V02Row(scope: ownerSide ? .privateStore : .sharedStore, graph: row.graph, node: row.node,
                 kind: row.kind, value: value, parent: row.parent, children: children.sorted(), validClosure: true,

@@ -581,6 +581,10 @@ extension V02CloudStore: V02LeaveRecoveryStoreAccess {
 
 extension V02CloudStore: V02MutationStoreAccess {
     func mutate(_ role: V02MutationRole, runID: UUID) async throws {
+        if role == .participantExplicitAdd {
+            try await addParticipantObjectToExistingShare(runID: runID)
+            return
+        }
         guard role.writes, scopes == V02Scope.allCases,
               let owner, let cloud = owner as? NSPersistentCloudKitContainer,
               let url = stores[role.isOwner ? .privateStore : .sharedStore]?.url else { throw V02Error.missingStores }
@@ -615,7 +619,7 @@ extension V02CloudStore: V02MutationStoreAccess {
                 child.setValue(root, forKey: "parent")
                 edited.setValue(role == .ownerAdd ? V02MutationFixture.ownerValue : V02MutationFixture.participantValue,
                                 forKey: "value")
-            case .ownerDelete, .participantDelete:
+            case .ownerDelete, .participantDelete, .participantExplicitDelete:
                 let child = try one(role == .ownerDelete ? "A-003" : "A-004")
                 guard child.value(forKey: "parent") as? NSManagedObject === root,
                       cloud.canDeleteRecord(forManagedObjectWith: child.objectID) else { throw V02Error.editNotReady }
@@ -624,6 +628,54 @@ extension V02CloudStore: V02MutationStoreAccess {
                 throw V02Error.editNotReady
             }
             try context.save()
+        }
+    }
+
+    private func addParticipantObjectToExistingShare(runID: UUID) async throws {
+        guard let owner, let cloud = owner as? NSPersistentCloudKitContainer,
+              let privateStore = stores[.privateStore], let sharedStore = stores[.sharedStore],
+              cloud.canModifyManagedObjects(in: sharedStore) else { throw V02Error.editNotReady }
+        let context = owner.viewContext
+        let sharedRows = try context.fetch(Self.request(runID, store: sharedStore))
+        guard sharedRows.count == 3,
+              sharedRows.filter({ $0.value(forKey: "node") as? String == "A-root" }).count == 1,
+              let root = sharedRows.first(where: { $0.value(forKey: "node") as? String == "A-root" }),
+              cloud.canUpdateRecord(forManagedObjectWith: root.objectID),
+              try context.fetch(Self.request(runID, store: privateStore)).isEmpty,
+              let share = try cloud.fetchShares(matching: [root.objectID])[root.objectID],
+              T6Share(share).nonOwnerCount == 1 else { throw V02Error.invalidFixture }
+
+        // Share an unconnected object first: Apple's API rejects a traversal
+        // through an object that already belongs to a share.
+        let child = NSEntityDescription.insertNewObject(forEntityName: "V01T6Member", into: context)
+        context.assign(child, to: sharedStore)
+        for (key, value) in ["runID": runID.uuidString, "graph": "A", "node": "A-004",
+                             "kind": "item", "value": "participant-delta"] {
+            child.setValue(value, forKey: key)
+        }
+        try context.save()
+        let assigned: CKShare = try await withCheckedThrowingContinuation { continuation in
+            cloud.share([child], to: share) { _, returnedShare, _, error in
+                if let error { continuation.resume(throwing: error) }
+                else if let returnedShare { continuation.resume(returning: returnedShare) }
+                else { continuation.resume(throwing: V02Error.missingResponse) }
+            }
+        }
+        guard assigned.recordID == share.recordID else { throw V02Error.invalidShare }
+        let linkingContext = owner.newBackgroundContext()
+        let sharedURL = sharedStore.url
+        try await linkingContext.perform {
+            defer { linkingContext.reset() }
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == sharedURL }) else {
+                throw V02Error.missingStores
+            }
+            let rows = try linkingContext.fetch(Self.request(runID, store: store))
+            guard rows.count == 4,
+                  let sharedRoot = rows.first(where: { $0.value(forKey: "node") as? String == "A-root" }),
+                  let sharedChild = rows.first(where: { $0.value(forKey: "node") as? String == "A-004" }),
+                  sharedChild.value(forKey: "parent") == nil else { throw V02Error.invalidFixture }
+            sharedChild.setValue(sharedRoot, forKey: "parent")
+            try linkingContext.save()
         }
     }
 }

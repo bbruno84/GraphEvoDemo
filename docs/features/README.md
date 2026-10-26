@@ -8,6 +8,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 - [V02 old-link reacceptance after leave](v02-old-link-reaccept.md)
 - [V02 incremental members in an accepted share](v02-incremental-shared-members.md)
+- [V02 participant members via an existing share](../results/v02-participant-explicit-members-2026-10-26.md)
 - [V02 read-only post-leave recovery](v02-post-leave-recovery.md)
 - [V02 reinvitation and voluntary leave](v02-reinvite-voluntary-leave.md)
 - [V02 live revocation](v02-live-revocation.md)

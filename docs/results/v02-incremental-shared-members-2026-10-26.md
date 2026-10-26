@@ -52,10 +52,10 @@ the participant's durable state is uncertain.
 Apple's [Core Data sharing sample](https://developer.apple.com/documentation/coredata/sharing-core-data-objects-between-icloud-users)
 documents private/shared stores and explicit store assignment, while the
 [WWDC21 sharing session](https://developer.apple.com/videos/play/wwdc2021/10015/)
-states that permitted participants can add records to shared zones. This case
-therefore calls for a separate minimal supported-API reproduction, including
-an explicit existing-share assignment comparison, before GraphEvo 2 treats
-participant-created graph members as feasible or infeasible.
+states that permitted participants can add records to shared zones. A
+[separate supported-API reproduction](v02-participant-explicit-members-2026-10-26.md)
+subsequently succeeded using explicit assignment to the existing share. That
+positive result does not explain or erase this run's relationship/save crash.
 
 ## Provenance and retained evidence
 
