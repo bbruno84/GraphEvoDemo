@@ -57,6 +57,8 @@ recovered a fresh accepted-share replica and permitted the local save despite
 negative record advice; the owner remained unchanged in the bounded window.
 [Live-revocation instrumentation](docs/features/v02-live-revocation.md) separately
 tests A3→A0 on the original open participant store while preserving owner A/B.
+The [observed revocation](docs/results/v02-revocation-2026-10-26.md) removed A
+from the already-open XR while an independent owner reopen retained all A/B.
 [Reinvitation and voluntary leave](docs/features/v02-reinvite-voluntary-leave.md)
 reuse those original stores with case-scoped invitations, explicit shared-store
 participation removal and independent owner retention verification.

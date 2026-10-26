@@ -1,6 +1,7 @@
 # V02: app-visible live revocation
 
-Status: **instrumented and locally tested; device result is separate**. This
+Status: **instrumented, locally tested, and observed on devices**; see the
+[retained hardware result](../results/v02-revocation-2026-10-26.md). This
 control tests whether A disappears from the participant's original open stores
 after the owner removes that participant, while owner A/B remain intact. It
 does not investigate Core Data internals or implement leaving/reinvitation.
@@ -98,6 +99,6 @@ Five new tests cover CLI/case guards; rejection of initial/fresh absence and
 replacement-store claims; positive baseline/readiness before the action; a full
 same-container observation window with zero participant writes; no watch/removal
 replay; preserved owner data and separate verification; and a real local SQLite
-history anchor/deletion check. The app suite passes 78 tests. Local/fake checks
+history anchor/deletion check. The source boundary used for the revocation hardware run passed 78 tests. Local/fake checks
 are not cross-account revocation evidence. The functional hardware result must
 be recorded separately from these tests.
