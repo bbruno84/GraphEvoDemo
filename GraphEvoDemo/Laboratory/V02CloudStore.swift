@@ -25,6 +25,7 @@ final class V02CloudStore: V02StoreAccess {
     private let trace: T6Trace?
     private let scopes: [V02Scope]
     private var stores: [V02Scope: NSPersistentStore] = [:]
+    private var revocationHistoryTokenData: Data?
     var inventory: [String: String] { Dictionary(uniqueKeysWithValues: stores.map { ($0.key.rawValue, $0.value.identifier) }) }
 
     init(currentUser: CKRecord.ID, localOnly: Bool = false, trace: T6Trace? = nil, scopes: [V02Scope] = V02Scope.allCases) {
@@ -376,5 +377,92 @@ extension V02CloudStore: V02PermissionStoreAccess {
             }
         } catch { result.freshReadErrors = [v01ErrorCode(error)] }
         return result
+    }
+}
+
+extension V02CloudStore: V02RevocationStoreAccess {
+    func captureRevocationHistoryAnchor() async throws -> Bool {
+        guard let owner, let url = stores[.sharedStore]?.url else { throw V02Error.missingStores }
+        let context = owner.newBackgroundContext()
+        let data: Data? = try await context.perform {
+            defer { context.reset() }
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
+            guard let token = owner.persistentStoreCoordinator.currentPersistentHistoryToken(fromStores: [store]) else { return nil }
+            return try NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true)
+        }
+        revocationHistoryTokenData = data
+        return data != nil
+    }
+    func revokeParticipant(runID: UUID, recipient: V02PrivateID, checkpoint: () throws -> Void) async throws {
+        guard scopes == V02Scope.allCases, let cloud = owner as? NSPersistentCloudKitContainer,
+              let store = stores[.privateStore] else { throw V02Error.missingStores }
+        let share = try rootShare("A", runID: runID)
+        let participants = share.participants.filter { $0.role != .owner }
+        guard share.publicPermission == .none, share.participants.filter({ $0.role == .owner }).count == 1,
+              participants.count == 1, let participant = participants.first, participant.role == .privateUser,
+              participant.acceptanceStatus == .accepted, [.readOnly, .readWrite].contains(participant.permission),
+              participant.userIdentity.userRecordID == recipient.recordID else { throw V02Error.unexpectedParticipant }
+        share.removeParticipant(participant)
+        try checkpoint()
+        let saved = try await persist(share, store: store, cloud: cloud, graph: "A")
+        guard T6Share(saved).ownerCount == 1, T6Share(saved).nonOwnerCount == 0, saved.publicPermission == .none else { throw V02Error.invalidShare }
+    }
+
+    func captureWatchedObjects(runID: UUID) async throws -> [V02RevocationObject] {
+        guard let owner, let url = stores[.sharedStore]?.url else { throw V02Error.missingStores }
+        let context = owner.newBackgroundContext()
+        return try await context.perform {
+            defer { context.reset() }
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
+            return try context.fetch(Self.request(runID, store: store)).map {
+                V02RevocationObject(node: $0.value(forKey: "node") as? String, objectURI: $0.objectID.uriRepresentation().absoluteString)
+            }.sorted { ($0.node ?? "") < ($1.node ?? "") }
+        }
+    }
+
+    func revocationHistory(since: Date, watchedURIs: [String]) async throws -> V02RevocationHistory {
+        guard let owner, let url = stores[.sharedStore]?.url else { throw V02Error.missingStores }
+        let context = owner.newBackgroundContext()
+        let tokenData = revocationHistoryTokenData
+        return try await context.perform {
+            defer { context.reset() }
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
+            let request: NSPersistentHistoryChangeRequest
+            if let tokenData, let token = try NSKeyedUnarchiver.unarchivedObject(ofClass: NSPersistentHistoryToken.self, from: tokenData) {
+                request = .fetchHistory(after: token)
+            } else { request = .fetchHistory(after: since) }
+            request.affectedStores = [store]
+            request.resultType = .transactionsAndChanges
+            let fetch = NSPersistentHistoryTransaction.fetchRequest!
+            fetch.fetchLimit = 65
+            request.fetchRequest = fetch
+            guard let result = try context.execute(request) as? NSPersistentHistoryResult,
+                  let transactions = result.result as? [NSPersistentHistoryTransaction] else {
+                return V02RevocationHistory(available: false, transactions: 0, truncated: false, watchedInserts: 0,
+                    watchedUpdates: 0, watchedDeletes: 0, watchedDeletedURIs: [], error: "History result unavailable")
+            }
+            var inserts = 0, updates = 0, deletes = 0
+            var deleted: Set<String> = []
+            let watched = Set(watchedURIs)
+            var inspectedChanges = 0
+            var truncated = transactions.count > 64
+            for transaction in transactions.prefix(64) {
+                for change in transaction.changes ?? [] {
+                    inspectedChanges += 1
+                    if inspectedChanges > 512 { truncated = true; break }
+                    let uri = change.changedObjectID.uriRepresentation().absoluteString
+                    guard watched.contains(uri) else { continue }
+                    switch change.changeType {
+                    case .insert: inserts += 1
+                    case .update: updates += 1
+                    case .delete: deletes += 1; deleted.insert(uri)
+                    @unknown default: break
+                    }
+                }
+                if inspectedChanges > 512 { break }
+            }
+            return V02RevocationHistory(available: true, transactions: min(transactions.count, 64), truncated: truncated,
+                watchedInserts: inserts, watchedUpdates: updates, watchedDeletes: deletes, watchedDeletedURIs: deleted.sorted(), error: nil)
+        }
     }
 }
