@@ -36,7 +36,11 @@ share zones plus fresh-store recovery on the same iPad. A later
 [independent iPhone reader](docs/results/v01-t6-independent-reader-2026-10-24.md)
 recovered the exact fixture and share identities. Both graphs downloaded into
 one SQLite; selective synchronization and broader R01 requirements remain open.
-T3–T4 and V02–V08 remain unimplemented.
+[Initial V02 instrumentation](docs/features/v02-cross-account-smoke.md) adds a
+private cross-account invitation/acceptance, one participant edit, owner
+observation and existing-store reopen. Hardware results remain separate from
+local tests; the full V02 matrix is not complete.
+T3–T4 and V03–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.
 

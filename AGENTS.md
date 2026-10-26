@@ -143,7 +143,16 @@ reinterpret a preflight result as another native trial. T2 was not run. Separate
 T5 instrumentation retains two distinct one-store owners and a dedicated peer;
 review code/tests before hardware execution. Local/injected passes are not
 cloud evidence. See the [T5 guide](docs/features/v01-independent-owners.md).
-T3–T4 and V02–V08 remain unimplemented. See
+Initial V02 smoke instrumentation uses separate CLI stages; see
+[the V02 guide](docs/features/v02-cross-account-smoke.md). Use only the explicitly
+authorized participant identity transferred as a sensitive app-data file. Never
+log or commit account IDs, invitation URLs or transport envelopes. Preparing
+owner-only shares sends no invitation; `owner-invite` adds the participant.
+Distinguish invitation persistence, acceptance, import, local save and owner
+recovery. Read both scopes; reopen must not create fresh replicas or repeat
+writes. Retain the participant owner for its whole edit window. Reuse T6's
+nonblocking event delivery. The full V02 matrix is not certified by local tests.
+T3–T4 and V03–V08 remain unimplemented. See
 [the T6 guide](docs/features/v01-owner-only-shares.md) for the separate CLI-only
 owner-only share trial. Keep callback assignment, share persistence, object export,
 and fresh-peer recovery distinct. T6 adds no participants or invitations and

@@ -6,6 +6,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [V02 initial cross-account smoke](v02-cross-account-smoke.md)
 - [V01 T6 owner-only shares](v01-owner-only-shares.md)
 - [V01 T5 independent owners](v01-independent-owners.md)
 - [V01 T1–T2 two-store trial](v01-two-stores.md)

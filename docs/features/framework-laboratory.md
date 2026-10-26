@@ -1,5 +1,11 @@
 # Framework verification laboratory
 
+The [initial V02 cross-account smoke](v02-cross-account-smoke.md) has separate CLI
+stages for identity export, private invitation/acceptance, participant edit,
+owner observation and existing-store reopen. Local tests do not imply hardware
+success or completion of V02. Sensitive transport files use a separate app-data
+namespace and must never be shared as reports.
+
 The launch screen offers the existing **GraphEvo v1 demo** and a separate
 **Framework laboratory**. Entering the laboratory does not initialize
 `GraphProvider`. Opening the v1 demo still creates its normal shared graph;
@@ -11,8 +17,9 @@ choose only the laboratory when collecting isolated framework evidence.
 
 **V00 — Local harness check** remains the local preparation check. The separate
 [V01 T0 control](v01-control.md) now has explicit writer/reader instrumentation;
-its results must be collected and reviewed separately. V02–V08 remain catalog
-entries marked Not run. Separate [T1–T2 stages](v01-two-stores.md) now instrument
+its results must be collected and reviewed separately. V02 has initial CLI smoke
+instrumentation; V03–V08 remain catalog entries marked Not run. Separate
+[T1–T2 stages](v01-two-stores.md) now instrument
 a two-store trial after the T0 control; T3–T4 remain unimplemented. Separate [T5 instrumentation](v01-independent-owners.md)
 and its [observed result](../results/v01-t5-2026-10-23.md) retain the independent-owner
 trial and unified fresh-peer recovery; local writer separation was not cloud isolation.
