@@ -100,7 +100,9 @@ Private archive:
 `2026-10-26-V02-lifecycle-88DA5EBE-FBD8-4A71-8B0F-E6D959703807` under the local
 GraphEvoLab evidence directory. Raw device reports, logs and sensitive transport
 artifacts remain outside Git. The separate [read-only post-leave probe](../features/v02-post-leave-recovery.md)
-will record old-URL metadata and fresh-replica automatic recovery without
-accepting again. It does not replace these retained strict-criterion failures.
+has a [bounded hardware result](v02-post-leave-recovery-2026-10-26.md): no
+automatic recovery across 180 seconds and pending XR metadata from the old URL,
+without accepting again. It does not replace these retained strict-criterion
+failures or establish whether a future acceptance could regain A.
 No GraphEvo facade lifecycle, general access
 revocation deadline, offline behavior or complete V02 matrix is certified.

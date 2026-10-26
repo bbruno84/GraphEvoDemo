@@ -68,7 +68,9 @@ two participants in both bounded checks, with the nonowner pending rather than
 the pre-leave accepted status. V02.7 remains partial.
 A [read-only post-leave probe](docs/features/v02-post-leave-recovery.md) now
 checks automatic A recovery in new stores and public metadata for the old URL,
-without another invitation or acceptance. Its hardware result is separate.
+without another invitation or acceptance. Its [bounded hardware result](docs/results/v02-post-leave-recovery-2026-10-26.md)
+observed no automatic recovery during 180 seconds and pending old-URL metadata.
+Reaccepting that URL and permanent access denial remain untested.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not

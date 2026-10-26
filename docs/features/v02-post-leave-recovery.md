@@ -1,6 +1,10 @@
 # V02 — read-only recovery probe after participant leave
 
-Status: instrumented and locally tested; hardware evidence remains separate.
+Status: instrumented, locally tested, and observed on hardware. The
+[retained result](../results/v02-post-leave-recovery-2026-10-26.md) records
+86 empty XR reads over 180 seconds, with old-URL metadata pending before/after.
+It also retains the owner metadata identity-comparison limitation and the
+initially missing owner share DTOs.
 This focused control asks whether A appears automatically in a new XR replica
 after the [partial leave result](../results/v02-reinvite-voluntary-leave-2026-10-26.md),
 without another invitation or acceptance. It also reads metadata for the prior
