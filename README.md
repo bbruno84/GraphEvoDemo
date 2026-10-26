@@ -62,6 +62,9 @@ from the already-open XR while an independent owner reopen retained all A/B.
 [Reinvitation and voluntary leave](docs/features/v02-reinvite-voluntary-leave.md)
 reuse those original stores with case-scoped invitations, explicit shared-store
 participation removal and independent owner retention verification.
+The [first lifecycle observation](docs/results/v02-reinvite-voluntary-leave-2026-10-26.md)
+recovered A and removed its participant copy, but the owner share still listed
+two participants in both bounded checks. V02.7 remains partial.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not
