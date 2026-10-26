@@ -40,6 +40,9 @@ one SQLite; selective synchronization and broader R01 requirements remain open.
 private cross-account invitation/acceptance, one participant edit, owner
 observation and existing-store reopen. Hardware results remain separate from
 local tests; the full V02 matrix is not complete.
+The [first V02 smoke result](docs/results/v02-cross-account-smoke-2026-10-26.md)
+observed A-only shared recovery on the different-account XR, return of its edit
+to the owner, unchanged owner-only B and reopening of both sides' existing stores.
 T3–T4 and V03–V08 remain unimplemented.
 See the [laboratory guide](docs/features/framework-laboratory.md) for lifecycle,
 fixtures, reports, explicit cleanup, evidence limitations and tests.

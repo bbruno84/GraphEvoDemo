@@ -1,7 +1,10 @@
 # V02: initial private cross-account smoke
 
-Status: **instrumentation prepared and locally tested; no hardware result is
-implied**. This is one bounded direct-framework control, not completion of V02,
+Status: **initial smoke observed on the owner iPad and a different-account XR**;
+see the [retained result](../results/v02-cross-account-smoke-2026-10-26.md).
+Invitation, exact A recovery in shared scope, return of one participant edit and
+existing-store reopen passed under those conditions. Local tests alone do not
+establish that result. This is one bounded direct-framework control, not completion of V02,
 R01, or GraphEvo integration verification. The authorized pair is the owner's
 iPad and an iPhone XR on iOS 18 under a different account. Device orchestration
 and evidence collection are handled separately. The implementation does not

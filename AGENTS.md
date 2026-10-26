@@ -152,6 +152,11 @@ Distinguish invitation persistence, acceptance, import, local save and owner
 recovery. Read both scopes; reopen must not create fresh replicas or repeat
 writes. Retain the participant owner for its whole edit window. Reuse T6's
 nonblocking event delivery. The full V02 matrix is not certified by local tests.
+The [first hardware smoke](docs/results/v02-cross-account-smoke-2026-10-26.md)
+observed private sharing, A-only participant recovery, an edit recovered through
+a new owner opening, unchanged B and existing-store reopen on both sides. Do not
+extend this to live import in an already-open owner, fresh post-acceptance replica
+recovery, GraphEvo facades or the full permission/lifecycle/conflict matrix.
 T3–T4 and V03–V08 remain unimplemented. See
 [the T6 guide](docs/features/v01-owner-only-shares.md) for the separate CLI-only
 owner-only share trial. Keep callback assignment, share persistence, object export,
