@@ -140,7 +140,21 @@ final class V01MembershipSession {
                 }
             } else if request.role == .add || request.role == .delete {
                 let prior: V01MembershipPhase = request.role == .add ? .original : .added
-                guard V01MembershipFixture.preserved(before, original: ledger.original, added: ledger.added, phase: prior) else { throw V02Error.invalidFixture }
+                // Store loading can finish before fetchShares exposes cached share metadata.
+                // Poll reads only, before reserving or performing a mutation; preserve the first baseline.
+                report?.phase = "Waiting for complete prior-phase metadata before mutation; reads only"
+                try persist()
+                let readinessDeadline = now().addingTimeInterval(TimeInterval(request.window))
+                var candidate = before
+                while !V01MembershipFixture.preserved(candidate, original: ledger.original, added: ledger.added, phase: prior) && now() < readinessDeadline {
+                    try await sleep()
+                    candidate = try await opened.snapshot(runID: request.runID)
+                    report?.members = candidate
+                    try persist()
+                }
+                report?.precondition = candidate
+                try persist()
+                guard V01MembershipFixture.preserved(candidate, original: ledger.original, added: ledger.added, phase: prior) else { throw V02Error.invalidFixture }
                 ledger.progress = request.role == .add ? .adding : .deleting
                 try saveLedger(ledger) // A crash after this reservation must not silently replay a mutation.
                 report?.phase = request.role == .add ? "Adding A-003 and updating A-001 using relationship plus save only" : "Deleting A-003 using context.delete plus save only"

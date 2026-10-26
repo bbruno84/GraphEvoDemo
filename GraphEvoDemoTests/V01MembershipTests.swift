@@ -188,6 +188,53 @@ final class V01MembershipTests: XCTestCase {
         XCTAssertTrue(wrongStore.closed)
     }
 
+    func testReopenWaitsForMissingShareMetadataUsingReadsOnlyBeforeReservingMutation() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let run = UUID()
+        try setupLedger(root, run: run, progress: .ready)
+        let original = fixture(.original)
+        let incomplete = try original.map { try changing($0, path: ["share"], value: NSNull()) }
+        let store = FakeMembershipStore(rows: incomplete)
+        store.afterAdd = fixture(.added)
+        var clock = Date(timeIntervalSince1970: 10)
+        var waitingReads = 0
+        let session = makeSession(root, store: store, now: { clock }, sleep: {
+            if store.adds == 0 {
+                XCTAssertEqual(try self.readLedger(root, run: run).progress, .ready)
+                XCTAssertTrue(store.createdShares.isEmpty)
+                waitingReads += 1
+                store.rows = original
+            }
+            clock.addTimeInterval(2)
+        })
+        await session.run(request(.add, .added, run: run, window: 4), container: "test")
+        XCTAssertEqual(waitingReads, 1)
+        XCTAssertEqual(store.adds, 1)
+        XCTAssertTrue(session.report?.preservedIdentities == true)
+        XCTAssertEqual(session.report?.baseline, incomplete)
+        XCTAssertEqual(session.report?.precondition, original)
+        XCTAssertEqual(try readLedger(root, run: run).progress, .added)
+    }
+
+    func testMissingSharePreconditionTimesOutWithoutMutationOrLedgerReservation() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let run = UUID()
+        try setupLedger(root, run: run, progress: .ready)
+        let incomplete = try fixture(.original).map { try changing($0, path: ["share"], value: NSNull()) }
+        let store = FakeMembershipStore(rows: incomplete)
+        var clock = Date(timeIntervalSince1970: 10)
+        let session = makeSession(root, store: store, now: { clock }, sleep: { clock.addTimeInterval(2) })
+        await session.run(request(.add, .added, run: run, window: 4), container: "test")
+        XCTAssertEqual(store.adds, 0)
+        XCTAssertTrue(store.createdShares.isEmpty)
+        XCTAssertFalse(session.report?.localMutationSaved ?? true)
+        XCTAssertEqual(session.report?.precondition, incomplete)
+        XCTAssertEqual(try readLedger(root, run: run).progress, .ready)
+        XCTAssertTrue(store.closed)
+    }
+
     private func temporaryRoot() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString) }
     private func request(_ role: V01MembershipRole, _ phase: V01MembershipPhase, run: UUID, window: Int = 0) -> V01MembershipRequest {
         V01MembershipRequest(role: role, runID: run, phase: phase, window: window)

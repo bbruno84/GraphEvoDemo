@@ -111,6 +111,16 @@ identities, checks the original writer store identifier, and durably reserves
 mutations keep that reservation; restarting cannot silently replay them or skip
 to the next phase. Missing stores do not create replacement writer replicas.
 
+Store loading is not a barrier for `fetchShares` metadata. Before reserving an
+add/delete, the session allows a bounded read-only readiness window using fresh
+snapshot contexts. The first snapshot remains in `baseline`; the last candidate
+is retained separately in `precondition`. Only the complete pinned prior phase
+allows mutation. A readiness timeout performs no save/share and leaves the
+ledger unreserved; it is not a native add/delete result. The full post-save
+sampling window starts separately after a successful save. An externally
+authorized new stage after a precondition-only failure is distinct from replay
+of a reserved or attempted mutation.
+
 Successful phase advancement requires exact values and links, a mapping for
 every member, owner-only metadata, one common share per graph, and distinct A/B
 zones. All original A record IDs and full share metadata remain pinned. A-003
@@ -139,7 +149,9 @@ Eight new tests cover CLI phase guards; exact 5→6→5 values/closure; pinned I
 new-child membership and unchanged B; a real one-private-store SQLite cycle with
 reopen and anti-replay checks; reservation before save; full mutation-window
 lifetime; fresh reader paths with zero writes/shares; and conservative missing
-membership/replacement-store rejection. The full app suite passes 64 tests;
+membership/replacement-store rejection. Two additional regressions cover delayed
+share metadata becoming ready before reservation and readiness timeout with zero
+mutation/ledger advancement. The full app suite passes 66 tests;
 these local/injected checks are not native cloud membership evidence.
 
 This is a root/child control only. Independent same-owner peer recovery,

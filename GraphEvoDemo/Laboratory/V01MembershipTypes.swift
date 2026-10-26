@@ -118,6 +118,7 @@ nonisolated struct V01MembershipReport: Codable {
     var stores: [String: String] = [:]
     var original: [V02Row] = []
     var baseline: [V02Row] = []
+    var precondition: [V02Row] = []
     var members: [V02Row] = []
     var fixtureSaved = false
     var localMutationSaved = false
