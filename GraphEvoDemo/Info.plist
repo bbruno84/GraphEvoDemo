@@ -6,7 +6,7 @@
         <string>GraphEvoDemo</string>
 
         <key>CFBundleIdentifier</key>
-        <string>com.valerioburiani.GraphEvoDemo</string>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 
         <key>CFBundleExecutable</key>
         <string>$(EXECUTABLE_NAME)</string>
@@ -26,7 +26,7 @@
         <key>UIMainStoryboardFile</key>
         <string></string>
 
-        <!-- 👇 Registrazione SceneDelegate -->
+        <!-- Scene delegate registration -->
         <key>UIApplicationSceneManifest</key>
         <dict>
             <key>UIApplicationSupportsMultipleScenes</key>
@@ -48,6 +48,16 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+    <key>GraphEvoDemoCloudKitContainer</key>
+    <string>$(GRAPHEVO_CLOUD_CONTAINER)</string>
+    <key>LaboratoryDemoRevision</key>
+    <string>$(LAB_DEMO_REVISION)</string>
+    <key>LaboratoryGraphEvoRevision</key>
+    <string>$(LAB_GRAPHEVO_REVISION)</string>
+    <key>LaboratoryToolchain</key>
+    <string>$(LAB_TOOLCHAIN)</string>
+    <key>LaboratorySourceState</key>
+    <string>$(LAB_SOURCE_STATE)</string>
     <key>UIRequiresFullScreen</key>
     <true/>
 </dict>

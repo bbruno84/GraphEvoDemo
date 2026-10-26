@@ -2,7 +2,7 @@
 //  SceneDelegate 2.swift
 //  GraphEvoDemo
 //
-//  Created by Valerio Buriani on 09/09/25.
+//  Created by GraphEvoDemo contributors.
 //
 
 
@@ -24,7 +24,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         print("✅ SceneDelegate started")
 
         let window = UIWindow(windowScene: windowScene)
-        let tabBarController = MainTabBarController()
+        let root: UIViewController
+        if let request = V09Request.parse(ProcessInfo.processInfo.arguments) {
+            root = V09GraphFileViewController(request: request)
+        } else if let request = V02MutationRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02MutationViewController(request: request)
+        } else if let request = V02LeaveRecoveryRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02LeaveRecoveryViewController(request: request)
+        } else if let request = V02LifecycleRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02LifecycleViewController(request: request)
+        } else if let request = V02RevocationRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02RevocationViewController(request: request)
+        } else if let request = V02PermissionRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02PermissionViewController(request: request)
+        } else if let request = V01MembershipRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V01MembershipViewController(request: request)
+        } else if let request = V02Request.parse(ProcessInfo.processInfo.arguments) {
+            root = V02ViewController(request: request)
+        } else if let request = V01OwnerOnlyShareTrial.parse(ProcessInfo.processInfo.arguments) {
+            root = V01OwnerOnlyShareViewController(request: request)
+        } else if let request = V01LaunchRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V01ViewController(automaticRequest: request)
+        } else {
+            root = LaunchViewController(style: .insetGrouped)
+        }
+        let tabBarController = UINavigationController(rootViewController: root)
         window.rootViewController = tabBarController
         self.window = window
         window.makeKeyAndVisible()

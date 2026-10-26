@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  GraphEvoDemo
 //
-//  Created by Valerio Buriani on 09/09/25.
+//  Created by GraphEvoDemo contributors.
 //
 
 
@@ -13,8 +13,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        print("✅ App launched - initializing Graph")
-        let _ = GraphProvider.shared.graph
+        print("GraphEvoDemo launched; choose the demo or laboratory.")
         return true
     }
 
@@ -24,6 +23,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
         print("☁️ GraphEvoDemo remote notification received: \(userInfo)")
+        // GraphEvo's internal remote-change coordinator processes Persistent
+        // History after the store has been prepared in GraphProvider.
         completionHandler(.newData)
     }
 
