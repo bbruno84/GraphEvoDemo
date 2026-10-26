@@ -46,7 +46,7 @@ final class LaboratoryViewController: UITableViewController {
             let experiment = LaboratoryExperiment.catalog[indexPath.row - 3]
             cell.textLabel?.text = "\(experiment.id) — \(experiment.title)"
             switch experiment.id {
-            case "V01": cell.detailTextLabel?.text = "T0/T5/T6 observations retained; T1 rejected and protected. Direct-framework evidence is separate from integration."
+            case "V01": cell.detailTextLabel?.text = "T0/T5/T6 observations retained; T1 protected. Incremental membership has separate relation/save CLI stages; hardware results are separate."
             case "V02": cell.detailTextLabel?.text = "Initial cross-account smoke instrumented via CLI. Invite/accept, participant edit and existing-store reopen. Hardware result not implied."
             default: cell.detailTextLabel?.text = "Not run · implementation and framework/integration boundary pending"
             }

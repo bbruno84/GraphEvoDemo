@@ -15,7 +15,7 @@ protocol V02StoreAccess: AnyObject {
     var inventory: [String: String] { get }
 }
 
-/// One owner with separate private/shared stores; no application CKRecord CRUD.
+/// Laboratory owner with explicit database scopes; V02 defaults to private/shared.
 @MainActor
 final class V02CloudStore: V02StoreAccess {
     private var owner: NSPersistentContainer?
@@ -23,15 +23,17 @@ final class V02CloudStore: V02StoreAccess {
     private let currentUser: CKRecord.ID
     private let localOnly: Bool
     private let trace: T6Trace?
+    private let scopes: [V02Scope]
     private var stores: [V02Scope: NSPersistentStore] = [:]
     var inventory: [String: String] { Dictionary(uniqueKeysWithValues: stores.map { ($0.key.rawValue, $0.value.identifier) }) }
 
-    init(currentUser: CKRecord.ID, localOnly: Bool = false, trace: T6Trace? = nil) {
+    init(currentUser: CKRecord.ID, localOnly: Bool = false, trace: T6Trace? = nil, scopes: [V02Scope] = V02Scope.allCases) {
         self.currentUser = currentUser; self.localOnly = localOnly; self.trace = trace
+        self.scopes = scopes
     }
 
-    static func descriptions(directory: URL, container: String) -> [NSPersistentStoreDescription] {
-        V02Scope.allCases.map { scope in
+    static func descriptions(directory: URL, container: String, scopes: [V02Scope] = V02Scope.allCases) -> [NSPersistentStoreDescription] {
+        scopes.map { scope in
             let description = NSPersistentStoreDescription(url: directory.appendingPathComponent(scope.rawValue + ".sqlite"))
             description.shouldAddStoreAsynchronously = true
             description.shouldMigrateStoreAutomatically = false
@@ -46,7 +48,8 @@ final class V02CloudStore: V02StoreAccess {
     }
 
     func open(directory: URL, container: String, fresh: Bool, event: @escaping @MainActor @Sendable (V01NativeEvent) -> Void) async throws {
-        let descriptions = Self.descriptions(directory: directory, container: container)
+        guard scopes == [.privateStore] || scopes == V02Scope.allCases else { throw V02Error.missingStores }
+        let descriptions = Self.descriptions(directory: directory, container: container, scopes: scopes)
         if fresh {
             guard !FileManager.default.fileExists(atPath: directory.path) else { throw V02Error.existingStores }
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -75,7 +78,7 @@ final class V02CloudStore: V02StoreAccess {
                 }
             }
         }
-        for scope in V02Scope.allCases {
+        for scope in scopes {
             let url = directory.appendingPathComponent(scope.rawValue + ".sqlite").standardizedFileURL
             guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url?.standardizedFileURL == url }) else {
                 throw V02Error.missingStores
@@ -212,12 +215,13 @@ final class V02CloudStore: V02StoreAccess {
         guard let owner else { throw V01Error.notOpen }
         let context = owner.newBackgroundContext()
         let scopedURLs = stores.mapValues(\.url)
+        let selectedScopes = scopes
         let currentUser = currentUser
         return try await context.perform {
             defer { context.reset() }
             var result: [V02Row] = []
             let cloud = owner as? NSPersistentCloudKitContainer
-            for scope in V02Scope.allCases {
+            for scope in selectedScopes {
                 guard let url = scopedURLs[scope], let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
                 let objects = try context.fetch(Self.request(runID, store: store))
                 let shares = try cloud?.fetchShares(matching: objects.map(\.objectID)) ?? [:]
@@ -278,5 +282,46 @@ final class V02CloudStore: V02StoreAccess {
             currentUserAcceptance: share.currentUserParticipant?.acceptanceStatus.rawValue,
             participants: share.participants.map { V02Participant(role: $0.role.rawValue, permission: $0.permission.rawValue, acceptance: $0.acceptanceStatus.rawValue) }
                 .sorted { [$0.role, $0.permission, $0.acceptance].lexicographicallyPrecedes([$1.role, $1.permission, $1.acceptance]) })
+    }
+}
+
+// The membership control uses this same stack with only private scope selected.
+// These mutations intentionally never invoke a share API for the new object.
+extension V02CloudStore: V01MembershipStoreAccess {
+    func addMembershipChild(runID: UUID) async throws {
+        try await mutateMembership(runID: runID, adding: true)
+    }
+    func deleteMembershipChild(runID: UUID) async throws {
+        try await mutateMembership(runID: runID, adding: false)
+    }
+    private func mutateMembership(runID: UUID, adding: Bool) async throws {
+        guard scopes == [.privateStore], let owner, let url = stores[.privateStore]?.url else { throw V02Error.missingStores }
+        let context = owner.newBackgroundContext()
+        try await context.perform {
+            defer { context.reset() }
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }) else { throw V02Error.missingStores }
+            let objects = try context.fetch(Self.request(runID, store: store))
+            let roots = objects.filter { $0.value(forKey: "node") as? String == "A-root" && $0.value(forKey: "graph") as? String == "A" }
+            let firstChildren = objects.filter { $0.value(forKey: "node") as? String == "A-001" && $0.value(forKey: "graph") as? String == "A" }
+            let newChildren = objects.filter { $0.value(forKey: "node") as? String == V01MembershipFixture.addedNode }
+            guard roots.count == 1, let root = roots.first, firstChildren.count == 1, let first = firstChildren.first,
+                  root.value(forKey: "kind") as? String == "root", first.value(forKey: "parent") as? NSManagedObject === root else { throw V02Error.invalidFixture }
+            if adding {
+                guard objects.count == 5, newChildren.isEmpty, first.value(forKey: "value") as? String == "alpha" else { throw V02Error.editNotReady }
+                let child = NSEntityDescription.insertNewObject(forEntityName: "V01T6Member", into: context)
+                context.assign(child, to: store)
+                for (key, value) in ["runID": runID.uuidString, "graph": "A", "node": V01MembershipFixture.addedNode, "kind": "item", "value": "delta"] {
+                    child.setValue(value, forKey: key)
+                }
+                child.setValue(root, forKey: "parent")
+                first.setValue(V01MembershipFixture.updatedValue, forKey: "value")
+            } else {
+                guard objects.count == 6, newChildren.count == 1, let child = newChildren.first,
+                      first.value(forKey: "value") as? String == V01MembershipFixture.updatedValue,
+                      child.value(forKey: "value") as? String == "delta", child.value(forKey: "parent") as? NSManagedObject === root else { throw V02Error.editNotReady }
+                context.delete(child)
+            }
+            try context.save()
+        }
     }
 }
