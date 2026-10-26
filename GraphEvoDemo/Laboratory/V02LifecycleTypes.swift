@@ -3,6 +3,7 @@ import CloudKit
 
 nonisolated enum V02LifecycleRole: String, Codable, CaseIterable {
     case reinvite = "owner-reinvite", reaccept = "participant-reaccept", leave = "participant-leave", verify = "owner-verify-leave"
+    case rejoinOld = "participant-rejoin-old-link"
     var isOwner: Bool { self == .reinvite || self == .verify }
 }
 nonisolated struct V02LifecycleRequest {
@@ -11,6 +12,11 @@ nonisolated struct V02LifecycleRequest {
     let caseID: UUID
     let window: Int
     let input: String?
+    let priorCaseID: UUID?
+    init(role: V02LifecycleRole, runID: UUID, caseID: UUID, window: Int, input: String?, priorCaseID: UUID? = nil) {
+        self.role = role; self.runID = runID; self.caseID = caseID; self.window = window
+        self.input = input; self.priorCaseID = priorCaseID
+    }
     static func parse(_ arguments: [String]) -> Self? {
         func value(_ key: String) -> String? {
             guard let i = arguments.firstIndex(of: key), arguments.indices.contains(i + 1) else { return nil }; return arguments[i + 1]
@@ -23,7 +29,10 @@ nonisolated struct V02LifecycleRequest {
         let input = value("--v02-input")
         if let input, !V02Request.validFilename(input) { return nil }
         if role == .reaccept && input == nil { return nil }
-        return Self(role: role, runID: run, caseID: id, window: window, input: input)
+        let prior = value("--v02-prior-case-id").flatMap(UUID.init(uuidString:))
+        if role == .rejoinOld && (prior == nil || prior == id || input != nil) { return nil }
+        if role != .rejoinOld && prior != nil { return nil }
+        return Self(role: role, runID: run, caseID: id, window: window, input: input, priorCaseID: prior)
     }
 }
 
@@ -65,6 +74,7 @@ nonisolated enum V02LifecycleProgress: String, Codable { case inviting, invited,
 nonisolated struct V02LifecycleState: Codable {
     let runID: UUID
     let caseID: UUID
+    var priorCaseID: UUID?
     var progress: V02LifecycleProgress
     let stores: [String: String]
     let originalOwner: [V02Row]
@@ -74,6 +84,7 @@ nonisolated struct V02LifecycleReport: Codable {
     var procedure = "V02-reinvite-voluntary-leave-v1"
     let runID: UUID
     let caseID: UUID
+    var priorCaseID: UUID?
     let role: V02LifecycleRole
     let stageID: UUID
     let processID: UUID

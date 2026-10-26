@@ -51,6 +51,7 @@ final class V02LifecycleSession {
         environment["os"] = ProcessInfo.processInfo.operatingSystemVersionString; environment["deviceClass"] = UIDevice.current.model
         report = V02LifecycleReport(runID: request.runID, caseID: request.caseID, role: request.role, stageID: stage, processID: UUID(),
             started: Date(), windowSeconds: request.window, environment: environment)
+        report?.priorCaseID = request.priorCaseID
         let stateURL = root.appendingPathComponent("State/\(request.runID)-\(request.caseID).json")
         let sensitive = root.appendingPathComponent("Sensitive/\(request.runID)/\(request.caseID)")
         var store: V02LifecycleStoreAccess?
@@ -88,11 +89,20 @@ final class V02LifecycleSession {
             try binding.validate(runID: request.runID, container: container, purpose: "account-binding")
             guard binding.account.recordID == user else { throw V02Error.invalidAccount }
             var state: V02LifecycleState?
+            var priorState: V02LifecycleState?
             if request.role == .leave || request.role == .verify {
                 state = try JSONDecoder().decode(V02LifecycleState.self, from: Data(contentsOf: stateURL))
                 guard state?.runID == request.runID, state?.caseID == request.caseID,
                       state?.progress == (request.role == .leave ? .recovered : .invited) else { throw V02Error.editNotReady }
             } else { guard !FileManager.default.fileExists(atPath: stateURL.path) else { throw V02Error.existingStores } }
+            if request.role == .rejoinOld {
+                guard let priorCaseID = request.priorCaseID else { throw V02Error.invalidEnvelope }
+                let oldStateURL = root.appendingPathComponent("State/\(request.runID)-\(priorCaseID).json")
+                let old = try JSONDecoder().decode(V02LifecycleState.self, from: Data(contentsOf: oldStateURL))
+                guard old.runID == request.runID, old.caseID == priorCaseID, old.progress == .left,
+                      old.recoveredParticipant.count == 3 else { throw V02Error.editNotReady }
+                priorState = old
+            }
             let opened = makeStore(user, recorder); store = opened
             report?.phase = "Opening original \(side) private/shared stores; no new replica or consumed probe"
             try persist()
@@ -105,6 +115,7 @@ final class V02LifecycleSession {
             report?.stores = inventory
             guard inventory.count == 2 else { throw V02Error.missingStores }
             if let state { guard state.stores == inventory else { throw V02Error.missingStores } }
+            if let priorState { guard priorState.stores == inventory else { throw V02Error.missingStores } }
             let initial = try await opened.snapshot(runID: request.runID)
             report?.openingSnapshot = initial
             if request.role == .reinvite || request.role == .verify {
@@ -141,25 +152,46 @@ final class V02LifecycleSession {
                 if request.role == .reaccept {
                     guard let name = request.input, V02Request.validFilename(name) else { throw V02Error.invalidEnvelope }
                     envelope = try V02SensitiveFiles.read(root.appendingPathComponent("Inbox/" + name))
+                } else if request.role == .rejoinOld {
+                    guard let priorCaseID = request.priorCaseID else { throw V02Error.invalidEnvelope }
+                    envelope = try V02SensitiveFiles.read(root.appendingPathComponent("Sensitive/\(request.runID)/\(priorCaseID)/received-invitation.json"))
                 } else { envelope = try V02SensitiveFiles.read(sensitive.appendingPathComponent("received-invitation.json")) }
                 try envelope.validate(runID: request.runID, container: container, purpose: "lifecycle-invitation")
-                guard envelope.caseID == request.caseID, envelope.recipient?.recordID == user, envelope.account.recordID != user,
+                guard envelope.caseID == (request.priorCaseID ?? request.caseID), envelope.recipient?.recordID == user, envelope.account.recordID != user,
                       let share = envelope.share else { throw V02Error.invalidEnvelope }
                 let expectedShare = V02RecordKey.make(share.recordID, currentUser: envelope.account.recordID, runID: request.runID)
-                if request.role == .reaccept {
+                if request.role == .reaccept || request.role == .rejoinOld {
                     // An already-active server membership may import before this stage opens.
                     // Retain that observation instead of inventing a second acceptance or a fallback.
-                    guard initial.isEmpty || V02Fixture.exact(initial, owner: false, edited: true, requireShares: false) else { throw V02Error.invalidFixture }
+                    if request.role == .rejoinOld {
+                        guard initial.isEmpty, let priorState,
+                              priorState.recoveredParticipant.allSatisfy({ $0.scope == .sharedStore && $0.share?.id == expectedShare }) else { throw V02Error.invalidFixture }
+                    } else {
+                        guard initial.isEmpty || V02Fixture.exact(initial, owner: false, edited: true, requireShares: false) else { throw V02Error.invalidFixture }
+                    }
                     report?.before = initial; report?.initiallyAbsent = initial.isEmpty
                     state = V02LifecycleState(runID: request.runID, caseID: request.caseID, progress: .accepting, stores: inventory, originalOwner: [])
+                    state?.priorCaseID = request.priorCaseID
                     try saveState(state!)
-                    try V02SensitiveFiles.write(envelope, to: sensitive.appendingPathComponent("received-invitation.json"))
-                    report?.phase = "Validating case-scoped metadata; accept only pending membership, record accepted membership without another call"
+                    if request.role == .reaccept {
+                        try V02SensitiveFiles.write(envelope, to: sensitive.appendingPathComponent("received-invitation.json"))
+                    }
+                    report?.phase = request.role == .rejoinOld
+                        ? "Validating the prior pending URL; accept once without a new invitation"
+                        : "Validating case-scoped metadata; accept only pending membership, record accepted membership without another call"
                     try persist()
-                    let acceptance = try await opened.reacceptInvitation(envelope, runID: request.runID, caseID: request.caseID, container: container) { try persist() }
+                    let acceptance = try await opened.reacceptInvitation(envelope, runID: request.runID,
+                                                                         caseID: request.priorCaseID ?? request.caseID, container: container) { try persist() }
                     report?.reaccept = acceptance
-                    let rows = try await readUntil(opened, request: request, persist: persist) { V02LifecycleFixture.participant($0, expectedShare: expectedShare) }
-                    guard V02LifecycleFixture.participant(rows, expectedShare: expectedShare) else { throw V02Error.invalidFixture }
+                    if request.role == .rejoinOld {
+                        guard acceptance.acceptanceAPICalled, !acceptance.alreadyAccepted else { throw V02Error.invalidMetadata }
+                    }
+                    let rows = try await readUntil(opened, request: request, persist: persist) {
+                        V02LifecycleFixture.participant($0, expectedShare: expectedShare) &&
+                        (priorState == nil || V02LeaveRecoveryFixture.exactA($0, original: priorState!.recoveredParticipant))
+                    }
+                    guard V02LifecycleFixture.participant(rows, expectedShare: expectedShare),
+                          priorState == nil || V02LeaveRecoveryFixture.exactA(rows, original: priorState!.recoveredParticipant) else { throw V02Error.invalidFixture }
                     report?.exactRecovery = true
                     state?.recoveredParticipant = rows; state?.progress = .recovered; try saveState(state!)
                     let active = report?.reaccept?.alreadyAccepted == true

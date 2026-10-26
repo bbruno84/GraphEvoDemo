@@ -8,7 +8,9 @@ initially missing owner share DTOs.
 This focused control asks whether A appears automatically in a new XR replica
 after the [partial leave result](../results/v02-reinvite-voluntary-leave-2026-10-26.md),
 without another invitation or acceptance. It also reads metadata for the prior
-case's existing URL. It does not test accepting that URL again.
+case's existing URL. It does not itself test accepting that URL again. The later
+[old-link acceptance stage](v02-old-link-reaccept.md) did so separately and
+recovered A on the original participant stores.
 
 ## Implementation and paths
 
@@ -81,8 +83,10 @@ observation cannot establish permanent denial, the server's complete membership
 state, or a delivery deadline. Partial/missing mapping snapshots and native
 errors stay visible. Read public metadata status independently: pending is not
 accepted, and neither its value nor an error alone answers whether automatic
-import occurs. The previous V02.7 owner-only criterion remains a separate unmet
-criterion; this probe does not redefine it as passed.
+import occurs. The previous owner-only criterion remained unmet after voluntary
+leave. The later old-link acceptance and owner revocation results distinguish
+rejoining from owner-enforced removal; this probe does not redefine its bounded
+negative observation as a permanent denial.
 
 Five focused XCTest methods cover separate/new-case CLI routing, fresh-store
 isolation and full negative window with anti-replay, recovery without early

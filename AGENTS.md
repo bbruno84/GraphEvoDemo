@@ -177,6 +177,13 @@ read-only: a new case uses fresh isolated stores and the protected prior-case
 URL, with no invitation, acceptance, seed, edit or purge. Never reuse its path.
 Retain typed metadata results and exact acceptance status; pending is not accepted.
 Negative bounded recovery and metadata errors cannot establish permanent denial.
+The [old-link reacceptance stage](docs/features/v02-old-link-reaccept.md) uses
+the original participant stores and the exact prior protected URL only after
+the previous state is `.left`. Reserve a new case before one pending-only
+acceptance; never replace the URL, reopen the consumed fresh probe, or repeat
+acceptance after an interruption. Compare the recovered A fixture with its
+pre-leave identities and retain an independent owner snapshot. Voluntary leave
+must not be presented as owner-enforced revocation.
 Judge app-visible A3→A0 on the same open participant stores and retained owner
 A/B. History is accessory and never a causal/completion barrier. Do not start
 new V03–V08 explorations: standalone earlier packages remain historical local

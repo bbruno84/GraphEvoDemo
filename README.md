@@ -70,7 +70,11 @@ A [read-only post-leave probe](docs/features/v02-post-leave-recovery.md) now
 checks automatic A recovery in new stores and public metadata for the old URL,
 without another invitation or acceptance. Its [bounded hardware result](docs/results/v02-post-leave-recovery-2026-10-26.md)
 observed no automatic recovery during 180 seconds and pending old-URL metadata.
-Reaccepting that URL and permanent access denial remain untested.
+The [old-link reacceptance check](docs/features/v02-old-link-reaccept.md) uses
+that same pending URL on the original participant stores; its
+[hardware result](docs/results/v02-old-link-reaccept-2026-10-26.md) recovered
+the exact A graph without a new invitation. Permanent access denial after a
+voluntary leave must therefore not be assumed.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not

@@ -16,6 +16,11 @@ final class V02LifecycleTests: XCTestCase {
                 XCTAssertNil(V02LifecycleRequest.parse(args + ["--v02-input", "../invitation.json"]))
                 args += ["--v02-input", "invitation.json"]
             }
+            if role == .rejoinOld {
+                XCTAssertNil(V02LifecycleRequest.parse(args))
+                args += ["--v02-prior-case-id", UUID().uuidString]
+                XCTAssertNil(V02LifecycleRequest.parse(args + ["--v02-input", "invitation.json"]))
+            }
             XCTAssertEqual(V02LifecycleRequest.parse(args)?.role, role)
             XCTAssertNil(V02Request.parse(args))
             XCTAssertNil(V02LifecycleRequest.parse(args.filter { $0 != "--v02-development-verified" }))
@@ -129,6 +134,65 @@ final class V02LifecycleTests: XCTestCase {
             XCTAssertEqual(fake.accepts, 0)
             XCTAssertEqual(fake.leaves, 0)
         }
+    }
+
+    func testOldLinkRejoinUsesLeftCaseAndReservesNewCaseBeforeAccepting() async throws {
+        let root = temporaryRoot(), original = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: original) }
+        let run = UUID(), prior = UUID(), current = UUID()
+        try binding(original, run: run, ownerSide: false)
+        let recovered = rows(run, ownerSide: false, invited: true)
+        let previous = V02LifecycleState(runID: run, caseID: prior, progress: .left,
+                                         stores: ["private": "original-private", "shared": "original-shared"],
+                                         originalOwner: [], recoveredParticipant: recovered)
+        let previousURL = root.appendingPathComponent("State/\(run)-\(prior).json")
+        try FileManager.default.createDirectory(at: previousURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(previous).write(to: previousURL)
+        try V02SensitiveFiles.write(invitation(run, id: prior),
+            to: root.appendingPathComponent("Sensitive/\(run)/\(prior)/received-invitation.json"))
+        let fake = FakeLifecycleStore(rows: [])
+        fake.afterOperation = recovered
+        fake.inspectOperation = { XCTAssertEqual(try self.state(root, run: run, id: current).progress, .accepting) }
+        let request = V02LifecycleRequest(role: .rejoinOld, runID: run, caseID: current, window: 0,
+                                          input: nil, priorCaseID: prior)
+        let attempt = session(root, original: original, fake: fake, ownerSide: false)
+        await attempt.run(request, container: "test")
+        XCTAssertTrue(attempt.report?.errors.isEmpty == true)
+        XCTAssertTrue(attempt.report?.exactRecovery == true)
+        XCTAssertEqual(attempt.report?.reaccept?.metadataStatus, CKShare.ParticipantAcceptanceStatus.pending.rawValue)
+        XCTAssertEqual(attempt.report?.reaccept?.acceptanceAPICalled, true)
+        XCTAssertEqual(fake.accepts, 1)
+        XCTAssertEqual(fake.invites + fake.leaves, 0)
+        XCTAssertEqual(try state(root, run: run, id: current).progress, .recovered)
+        let replay = FakeLifecycleStore(rows: [])
+        await session(root, original: original, fake: replay, ownerSide: false).run(request, container: "test")
+        XCTAssertEqual(replay.opens, 0)
+    }
+
+    func testOldLinkRejoinStopsIfMetadataAlreadyAccepted() async throws {
+        let root = temporaryRoot(), original = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: original) }
+        let run = UUID(), prior = UUID(), current = UUID()
+        try binding(original, run: run, ownerSide: false)
+        let recovered = rows(run, ownerSide: false, invited: true)
+        let previous = V02LifecycleState(runID: run, caseID: prior, progress: .left,
+                                         stores: ["private": "original-private", "shared": "original-shared"],
+                                         originalOwner: [], recoveredParticipant: recovered)
+        let previousURL = root.appendingPathComponent("State/\(run)-\(prior).json")
+        try FileManager.default.createDirectory(at: previousURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONEncoder().encode(previous).write(to: previousURL)
+        try V02SensitiveFiles.write(invitation(run, id: prior),
+            to: root.appendingPathComponent("Sensitive/\(run)/\(prior)/received-invitation.json"))
+        let fake = FakeLifecycleStore(rows: [])
+        fake.alreadyAccepted = true
+        fake.afterOperation = recovered
+        let attempt = session(root, original: original, fake: fake, ownerSide: false)
+        await attempt.run(V02LifecycleRequest(role: .rejoinOld, runID: run, caseID: current, window: 0,
+                                              input: nil, priorCaseID: prior), container: "test")
+        XCTAssertFalse(attempt.report?.errors.isEmpty ?? true)
+        XCTAssertFalse(attempt.report?.exactRecovery ?? true)
+        XCTAssertEqual(attempt.report?.reaccept?.acceptanceAPICalled, false)
+        XCTAssertEqual(fake.invites + fake.leaves, 0)
     }
 
     private func temporaryRoot() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString) }
