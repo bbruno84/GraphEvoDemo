@@ -6,6 +6,7 @@ relevant code, and a tutorial-style example that can be run from the app.
 
 ## Available guides
 
+- [V02 read-only/fresh accepted-share replica](v02-readonly-fresh-replica.md)
 - [V01 incremental membership](v01-incremental-membership.md)
 - [Standalone V03 local concurrency probe](../../Experiments/ConcurrencyProbe/README.md)
 - [V02 initial cross-account smoke](v02-cross-account-smoke.md)

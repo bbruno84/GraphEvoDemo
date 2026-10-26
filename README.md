@@ -46,6 +46,10 @@ local tests; the full V02 matrix is not complete.
 The [first V02 smoke result](docs/results/v02-cross-account-smoke-2026-10-26.md)
 observed A-only shared recovery on the different-account XR, return of its edit
 to the owner, unchanged owner-only B and reopening of both sides' existing stores.
+[Read-only/fresh-replica instrumentation](docs/features/v02-readonly-fresh-replica.md)
+adds an isolated single-save probe, independent owner observation and a guarded
+RW restore. Local permission advice, local save, export and remote state remain
+separate observations; no enforcement result is implied by its tests.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not

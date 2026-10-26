@@ -157,6 +157,13 @@ observed private sharing, A-only participant recovery, an edit recovered through
 a new owner opening, unchanged B and existing-store reopen on both sides. Do not
 extend this to live import in an already-open owner, fresh post-acceptance replica
 recovery, GraphEvo facades or the full permission/lifecycle/conflict matrix.
+The separate [read-only probe](docs/features/v02-readonly-fresh-replica.md) always
+attempts one real save after an exact RO import; never skip it based on
+`canUpdateRecord`. Keep expected local errors separate from stage/export errors.
+Consumed probe paths must never reopen. Restore RW only after the coordinator
+has stopped/quarantined the probe and supplied its retained final report; do
+not infer CloudKit quiescence from closing. No silent value restoration, retry,
+purge, revocation or leaving belongs in this batch.
 T3–T4 and V03–V08 remain unimplemented. See
 `Experiments/ConcurrencyProbe/README.md` for the separate macOS-only Swift 6
 prototype; its eight tests are not part of the iOS app suite or CloudKit evidence.
