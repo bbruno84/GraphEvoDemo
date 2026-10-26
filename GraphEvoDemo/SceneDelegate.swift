@@ -25,7 +25,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         let root: UIViewController
-        if let request = V02LeaveRecoveryRequest.parse(ProcessInfo.processInfo.arguments) {
+        if let request = V02MutationRequest.parse(ProcessInfo.processInfo.arguments) {
+            root = V02MutationViewController(request: request)
+        } else if let request = V02LeaveRecoveryRequest.parse(ProcessInfo.processInfo.arguments) {
             root = V02LeaveRecoveryViewController(request: request)
         } else if let request = V02LifecycleRequest.parse(ProcessInfo.processInfo.arguments) {
             root = V02LifecycleViewController(request: request)

@@ -184,6 +184,18 @@ acceptance; never replace the URL, reopen the consumed fresh probe, or repeat
 acceptance after an interruption. Compare the recovered A fixture with its
 pre-leave identities and retain an independent owner snapshot. Voluntary leave
 must not be presented as owner-enforced revocation.
+The [incremental cross-account case](docs/features/v02-incremental-shared-members.md)
+uses a new accepted V02 run before any participant edit. Start each live
+observer before its writer, wait for readiness and final reports, and do not
+replay reserved roles or replace a failed run. Mutations use normal Core Data
+relationships and saves in the actor's explicit store, after checking public
+permission advice; do not call a share API for a new child as a fallback.
+The first cross-account mutation run retained a participant-insertion crash
+before final save evidence. Preserve that run and its original XR stores;
+never replay its reserved write. A separate fixture is required to compare
+supported explicit existing-share assignment. The owner add/delete evidence
+and the participant's failed live-add window are distinct; see
+[the result](docs/results/v02-incremental-shared-members-2026-10-26.md).
 Judge app-visible A3→A0 on the same open participant stores and retained owner
 A/B. History is accessory and never a causal/completion barrier. Do not start
 new V03–V08 explorations: standalone earlier packages remain historical local

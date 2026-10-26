@@ -578,3 +578,52 @@ extension V02CloudStore: V02LeaveRecoveryStoreAccess {
         return result
     }
 }
+
+extension V02CloudStore: V02MutationStoreAccess {
+    func mutate(_ role: V02MutationRole, runID: UUID) async throws {
+        guard role.writes, scopes == V02Scope.allCases,
+              let owner, let cloud = owner as? NSPersistentCloudKitContainer,
+              let url = stores[role.isOwner ? .privateStore : .sharedStore]?.url else { throw V02Error.missingStores }
+        let context = owner.newBackgroundContext()
+        try await context.perform {
+            defer { context.reset() }
+            guard let store = owner.persistentStoreCoordinator.persistentStores.first(where: { $0.url == url }),
+                  cloud.canModifyManagedObjects(in: store) else { throw V02Error.editNotReady }
+            let objects = try context.fetch(Self.request(runID, store: store))
+            func one(_ node: String) throws -> NSManagedObject {
+                let found = objects.filter { $0.value(forKey: "node") as? String == node }
+                guard found.count == 1, let object = found.first,
+                      object.value(forKey: "graph") as? String == "A" else { throw V02Error.invalidFixture }
+                return object
+            }
+            let root = try one("A-root")
+            guard cloud.canUpdateRecord(forManagedObjectWith: root.objectID) else { throw V02Error.editNotReady }
+            switch role {
+            case .ownerAdd, .participantAdd:
+                let node = role == .ownerAdd ? "A-003" : "A-004"
+                let edited = try one(role == .ownerAdd ? "A-001" : "A-002")
+                let expectedValue = role == .ownerAdd ? "alpha" : "beta"
+                guard objects.filter({ $0.value(forKey: "node") as? String == node }).isEmpty,
+                      edited.value(forKey: "value") as? String == expectedValue,
+                      cloud.canUpdateRecord(forManagedObjectWith: edited.objectID) else { throw V02Error.editNotReady }
+                let child = NSEntityDescription.insertNewObject(forEntityName: "V01T6Member", into: context)
+                context.assign(child, to: store)
+                for (key, value) in ["runID": runID.uuidString, "graph": "A", "node": node,
+                                     "kind": "item", "value": role == .ownerAdd ? "owner-delta" : "participant-delta"] {
+                    child.setValue(value, forKey: key)
+                }
+                child.setValue(root, forKey: "parent")
+                edited.setValue(role == .ownerAdd ? V02MutationFixture.ownerValue : V02MutationFixture.participantValue,
+                                forKey: "value")
+            case .ownerDelete, .participantDelete:
+                let child = try one(role == .ownerDelete ? "A-003" : "A-004")
+                guard child.value(forKey: "parent") as? NSManagedObject === root,
+                      cloud.canDeleteRecord(forManagedObjectWith: child.objectID) else { throw V02Error.editNotReady }
+                context.delete(child)
+            default:
+                throw V02Error.editNotReady
+            }
+            try context.save()
+        }
+    }
+}

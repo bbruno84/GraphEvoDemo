@@ -75,6 +75,11 @@ that same pending URL on the original participant stores; its
 [hardware result](docs/results/v02-old-link-reaccept-2026-10-26.md) recovered
 the exact A graph without a new invitation. Permanent access denial after a
 voluntary leave must therefore not be assumed.
+[Incremental cross-account sharing](docs/features/v02-incremental-shared-members.md)
+observed owner addition and deletion after sharing. Its
+[hardware result](docs/results/v02-incremental-shared-members-2026-10-26.md)
+also records a participant-insertion crash; participant-created members remain
+unverified.
 T3–T4 and V03–V08 remain unimplemented.
 The separate [V03 concurrency probe](Experiments/ConcurrencyProbe/README.md)
 is a standalone macOS Swift 6 package with eight local tests. It does not
