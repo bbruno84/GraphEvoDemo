@@ -1,15 +1,21 @@
 name: Public v2 demo
 on:
   pull_request:
-    branches: [develop]
+    types: [opened, synchronize, reopened, labeled]
+    branches: [develop, master, "release/**"]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: public-v2-${{ github.ref }}
+  group: public-v2-${{ github.ref }}-${{ (github.event_name == 'pull_request' && github.base_ref == 'develop' && !(github.event.action == 'labeled' && github.event.label.name == 'ci-checkpoint')) && github.run_id || 'checkpoint' }}
   cancel-in-progress: true
 jobs:
   verify:
+    # Alpha development runs remotely only when explicitly requested.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.base_ref != 'develop' ||
+      (github.event.action == 'labeled' && github.event.label.name == 'ci-checkpoint')
     runs-on: macos-15
     timeout-minutes: 20
     env:

@@ -114,3 +114,10 @@ repair (#153) and idle context claim release after settled participant removal
 (#154). The retained physical continuation and its restart-assisted reinvitation
 are recorded in the library's H02 result. This pin does not certify restart-free
 reinvitation or the broader account/background/attachment acceptance matrix.
+
+Alpha delivery uses reviewed, affected local verification by default. Remote demo
+CI is opt-in at agreed checkpoints (ci-checkpoint label event or manual dispatch),
+with no automatic rerun for a retained label, dependency pin or intermediate push.
+Runner unavailability is recorded without blocking an otherwise verified,
+authorized alpha merge. Actual failures remain investigated and recorded; beta
+and release acceptance retain their required remote checks.

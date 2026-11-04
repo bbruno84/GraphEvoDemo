@@ -111,3 +111,21 @@ GraphContext and preserve foreground activity; do not carry a retired context's
 membership restrictions into another workspace. Bundle suggestions, entitlements
 and signing overrides share GRAPHEVO_DEMO_CLOUD_CONTAINER. Never infer provisioning
 success from a declared build value or publish account/invitation diagnostics.
+
+## Alpha validation and remote checkpoints
+
+Review and affected local checks are the default gate for alpha development.
+Group UI, dependency pins and related corrections before delivery. Do not start
+remote CI for every PR, push, pin update or documentation edit. The develop PR
+workflow runs only on an explicit ci-checkpoint label event or manual dispatch;
+a retained label does not request another run after a push. Unrequested updates
+must not cancel an explicit checkpoint. Master and release PRs retain automatic
+validation, and beta/release acceptance still requires its agreed remote gates.
+
+Hosted-runner capacity/service failures are not product test failures. Record
+that no checks ran and continue an authorized alpha merge when review and
+adequate affected local checks pass. Do not retry infrastructure-only failures
+by default. Investigate actual test failures and preserve their evidence; never
+relabel a failed/skipped/cancelled run as passing. A later material change needs
+local re-review, then joins the next agreed remote checkpoint instead of starting
+another one automatically. This policy supersedes earlier per-push CI guidance.
