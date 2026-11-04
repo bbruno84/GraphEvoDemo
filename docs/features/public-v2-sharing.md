@@ -107,3 +107,10 @@ error-domain/code, never account identities, invitation URLs or error userInfo.
 The Copy status navigation button copies bounded status categories, graph identity
 and error-domain/code for support. It omits invitation URLs, account identities,
 node contents and error userInfo; tests retain that privacy boundary.
+
+The dependency pin adopts reviewed library integration
+`6432e5954aba7baaf8aab5fd08e1da26741b3cdc`, including the metadata-first history
+repair (#153) and idle context claim release after settled participant removal
+(#154). The retained physical continuation and its restart-assisted reinvitation
+are recorded in the library's H02 result. This pin does not certify restart-free
+reinvitation or the broader account/background/attachment acceptance matrix.
