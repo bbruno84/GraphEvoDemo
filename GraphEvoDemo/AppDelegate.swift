@@ -22,7 +22,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        print("☁️ GraphEvoDemo remote notification received: \(userInfo)")
+        print("GraphEvoDemo received a remote notification.")
         completionHandler(.newData)
     }
 
