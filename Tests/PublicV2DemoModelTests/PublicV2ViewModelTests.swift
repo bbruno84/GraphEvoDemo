@@ -97,4 +97,22 @@ import GraphEvo
         try await reopened?.close()
     }
 
+    @Test func nativeInvitationsSurviveRestartWithoutTouchingAnExistingGraph() async throws {
+        let root = root(); defer { try? FileManager.default.removeItem(at: root) }
+        let first = try PublicV2ViewModel(baseURL: root)
+        try await first.create(); try await first.addNote()
+        let url = URL(string: "https://www.icloud.com/share/demo")!
+        try first.stageNativeInvitation(url: url, container: "iCloud.demo")
+        try first.stageNativeInvitation(url: url, container: "iCloud.demo")
+        #expect(first.incomingInvitations.count == 1)
+        let graphID = first.graphID
+        try await first.close()
+        let second = try PublicV2ViewModel(baseURL: root)
+        #expect(second.incomingInvitations.count == 1 && second.graphID == graphID)
+        try await second.open(); #expect(second.notes.count == 1)
+        try await second.newWorkspace()
+        #expect(second.incomingInvitations.count == 1)
+        #expect(throws: PublicV2DemoError.self) { try second.stageNativeInvitation(url: URL(string: "http://invalid.example")!, container: "iCloud.demo") }
+        try await second.close()
+    }
 }
