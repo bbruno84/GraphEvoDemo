@@ -49,3 +49,28 @@ preservation of existing notes/workspaces. Simulator builds compile the native
 adapter and callback integration. Live two-account invitation UI/acceptance remains
 a separate physical checkpoint; neither local tests nor a successful app launch
 certify it. See the library H02 guide for guarantees and recovery boundaries.
+
+## Separate physical checkpoint
+
+Use two devices with different iCloud accounts in the same container/environment;
+keep the owner workspace open through independent participant observation. Preserve
+existing workspaces and use a new participant workspace for this run.
+
+1. Start with an empty owner graph, present Apple's sharing UI and send its native
+   invitation. On the participant, accept, resume the join and select its replica.
+   Compare GraphID; an empty graph must be discoverable without an application row.
+2. Add a uniquely named owner note. Wait for independent participant observation
+   and compare the saved node ID/content before closing either owner.
+3. Use Apple's owner UI to change the participant to read-only, then read-write.
+   Refresh status on both devices and verify that mutation access follows the
+   observed permission; cached content alone is not authorization evidence.
+4. Close/reopen the participant workspace and resume with its existing session.
+   Confirm the same GraphID/note and no duplicate replica or application insert.
+5. Confirm participant leave, inspect local cleanup and owner status, then issue a
+   new native invitation into another empty workspace. Verify the new membership
+   independently; an old handle/join must not control it.
+
+Record exact library/demo revisions, OS/device scope, empty/populated observations
+and any pending native command or failure. This procedure is not an executed result.
+Do not replay a consumed invitation/mutation or copy a native store/session into a
+replica described as fresh. Account-switch trials retain their separate beta scope.

@@ -392,7 +392,7 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/bbruno84/GraphEvo.git";
 			requirement = {
-				revision = "acaae68607ba18ec7ebedb8c434d0a28e0bb022b";
+				revision = "6dc37bbe37b9447f668f3e8b6b0a1b23677079e4";
 				kind = revision;
 			};
 		};
