@@ -1,0 +1,25 @@
+name: Public v2 demo
+on:
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-v2-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify public Swift 6 view model
+        run: swift test
+      - name: Build iOS application without signing
+        run: >-
+          xcodebuild -quiet build -project GraphEvoDemo.xcodeproj
+          -scheme GraphEvoDemo -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO

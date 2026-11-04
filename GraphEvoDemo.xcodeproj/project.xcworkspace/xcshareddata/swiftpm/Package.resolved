@@ -6,8 +6,7 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/bbruno84/GraphEvo.git",
       "state" : {
-        "branch" : "release/1.0.0",
-        "revision" : "252d851d44a5b469630e12e4031621ead2b24eeb"
+        "revision" : "4c253f2a05df6d4151fb2bdba470fb09e75cdc3e"
       }
     }
   ],

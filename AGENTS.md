@@ -79,3 +79,16 @@ needed.
 
 Do not commit credentials, CloudKit secrets, local store files, build products,
 or other generated artifacts.
+
+## Public v2 flow
+
+The maintainer explicitly authorized H01 public-entry and migration demonstration.
+For this flow the dependency is pinned to a reviewed GraphEvo 2 integration
+revision, superseding the ordinary develop-dependency rule above. Preserve the
+existing v1 flow and its files. The launch selector must not initialize the legacy
+cloud graph before v1 is selected. PublicV2ViewModel owns its GraphContext and
+leases; controllers only forward input/lifecycle and present detached state.
+Account isolation must clear cached notes and replace query subscriptions after
+verification. Keep the explicit source/authority/peer prerequisites and stable
+operation UUIDs. Native staged conversion preserves payloads; attachment
+optimization remains consumer-owned. See docs/features/public-v2-entry.md.

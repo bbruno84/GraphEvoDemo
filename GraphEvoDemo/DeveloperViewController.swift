@@ -38,8 +38,18 @@ final class DeveloperViewController: UIViewController {
         print("✅ DeveloperViewController is visible")
     }
 
+    @objc private func openPublicV2() {
+        do {
+            navigationController?.pushViewController(try PublicV2ViewController.make(), animated: true)
+        } catch {
+            let alert = UIAlertController(title: "Cannot open v2 workspace", message: "Existing files have been preserved.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default)); present(alert, animated: true)
+        }
+    }
+
     private func setupButtons() {
         let actions: [(String, Selector)] = [
+            ("Open GraphEvo 2", #selector(openPublicV2)),
             ("Clear Token", #selector(clearToken)),
             ("Print Token Status", #selector(printTokenStatus)),
             ("Print Author & Context", #selector(printAuthorAndContext)),
