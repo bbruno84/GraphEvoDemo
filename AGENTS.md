@@ -101,3 +101,13 @@ before opening a replica, observe permissions and confirm destructive leave/stop
 All dependency pins must agree on the reviewed library integration revision.
 Injected/model/Simulator evidence remains distinct from native two-account device
 acceptance. See docs/features/public-v2-sharing.md.
+
+Connection UI must remember bounded container/environment preferences, prioritize
+an incoming invitation's container and offer environment buttons. Do not require
+retyping identifiers during ordinary restart/reconnect. Local opening remains
+independent of invalid saved cloud settings. Workspace switches await prior
+lease closure, require settled participant removal commands, create a new owned
+GraphContext and preserve foreground activity; do not carry a retired context's
+membership restrictions into another workspace. Bundle suggestions, entitlements
+and signing overrides share GRAPHEVO_DEMO_CLOUD_CONTAINER. Never infer provisioning
+success from a declared build value or publish account/invitation diagnostics.

@@ -8,7 +8,7 @@ import GraphEvo
     static func make() throws -> PublicV2ViewController {
         let base = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
             appropriateFor: nil, create: true).appendingPathComponent("GraphEvoDemo-PublicV2")
-        return PublicV2ViewController(model: try PublicV2ViewModel(baseURL: base))
+        return PublicV2ViewController(model: try PublicV2ViewModel(baseURL: base, defaultContainer: Bundle.main.object(forInfoDictionaryKey: "GraphEvoDemoCloudKitContainerIdentifier") as? String))
     }
     func receiveNativeInvitation(_ metadata: CKShare.Metadata) {
         guard let url = metadata.share.url else { model.recordFailure(PublicV2DemoError.invalidRoute); return }
@@ -18,13 +18,14 @@ import GraphEvo
     private let model: PublicV2ViewModel
     private var pickingSource = false
     private let actions = ["Create local graph", "Open existing graph", "Add demo note", "Refresh notes",
-        "Connect private cloud", "Bind private zone", "Request sync", "Retry account checks", "Import attachment",
+        "Connect cloud", "Bind private zone", "Request sync", "Retry account checks", "Import attachment",
         "Convert stopped v1 source", "Advance authoritative publication", "Recover empty replica", "New workspace", "Share with Apple UI", "Accept pending Apple invitation",
         "Resume shared invitations", "Inspect sharing status", "Leave shared graph", "Stop sharing as owner", "Release sharing presentation"]
     init(model: PublicV2ViewModel) { self.model = model; super.init(style: .insetGrouped) }
     required init?(coder: NSCoder) { fatalError("Use init(model:)") }
     override func viewDidLoad() {
         super.viewDidLoad(); title = "GraphEvo 2"
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Copy status", style: .plain, target: self, action: #selector(copyStatus))
         model.onChange = { [weak self] in self?.tableView.reloadData() }
         NotificationCenter.default.addObserver(self, selector: #selector(active), name: UIApplication.didBecomeActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(inactive), name: UIApplication.willResignActiveNotification, object: nil)
@@ -34,6 +35,10 @@ import GraphEvo
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         if isMovingFromParent { let model = model; Task { try? await model.close() } }
+    }
+    @objc private func copyStatus() {
+        UIPasteboard.general.string = model.supportSummary
+        UIAccessibility.post(notification: .announcement, argument: "Status copied")
     }
     @objc private func active() { run { try await self.model.setForegroundActive(true) } }
     @objc private func inactive() { run { try await self.model.setForegroundActive(false) } }
@@ -49,7 +54,7 @@ import GraphEvo
         cell.textLabel?.numberOfLines = 0; cell.detailTextLabel?.numberOfLines = 0
         if indexPath.section == 0 {
             cell.textLabel?.text = model.message + (model.convertedNodeCount.map { "\nConversion committed: \($0) identity mappings." } ?? "")
-            cell.detailTextLabel?.text = "Local: \(model.accountDescription)\nCloud: \(model.cloudDescription)\nGraph: \(model.graphID.rawValue)\nZone: \(model.zoneName)\nSharing: \(model.sharingDescription)\nPending Apple invitations: \(model.incomingInvitations.count)"
+            cell.detailTextLabel?.text = "Local: \(model.accountDescription)\nCloud: \(model.cloudDescription)\nGraph: \(model.graphID.rawValue)\nZone: \(model.zoneDescription)\nSharing: \(model.sharingDescription)\nPending Apple invitations: \(model.incomingInvitations.count)"
             cell.selectionStyle = .none
         } else if indexPath.section == 1 {
             cell.textLabel?.text = actions[indexPath.row]; cell.textLabel?.textColor = .systemBlue
@@ -70,10 +75,7 @@ import GraphEvo
         case 1: run { try await self.model.open() }
         case 2: run { try await self.model.addNote() }
         case 3: run { try await self.model.refreshNotes() }
-        case 4: form("Cloud configuration", fields: ["Entitled v2 container identifier", "Environment: development or production"], defaults: [model.incomingInvitations.first?.container ?? "", ""]) { values in
-            guard let environment = GraphCloudEnvironment(rawValue: values[1]) else { self.model.recordFailure(GraphCloudConnectionError.invalidConfiguration); return }
-            self.run { try await self.model.connect(container: values[0], environment: environment) }
-        }
+        case 4: configureCloud()
         case 5: run { try await self.model.bindPrivate() }
         case 6: run { try await self.model.requestSync() }
         case 7: run { try await self.model.retryAccounts() }
@@ -124,6 +126,44 @@ import GraphEvo
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.addAction(UIAlertAction(title: "Confirm", style: .destructive) { _ in action() })
+        present(alert, animated: true)
+    }
+    private func configureCloud() {
+        if model.incomingInvitations.isEmpty, let saved = model.cloudPreferences {
+            let alert = UIAlertController(title: "Cloud connection", message: saved.container, preferredStyle: .actionSheet)
+            alert.addAction(UIAlertAction(title: "Reconnect using saved " + saved.environment.rawValue, style: .default) { _ in
+                self.run { try await self.model.connect(container: saved.container, environment: saved.environment) }
+            })
+            alert.addAction(UIAlertAction(title: "Change configuration", style: .default) { _ in self.chooseCloudEnvironment() })
+            presentCloudOptions(alert)
+        } else { chooseCloudEnvironment() }
+    }
+    private func chooseCloudEnvironment(container explicitContainer: String? = nil) {
+        guard let container = explicitContainer ?? model.suggestedCloudContainer, !container.isEmpty, !container.contains("$(") else {
+            enterCloudContainer(); return
+        }
+        let alert = UIAlertController(title: "Connect cloud", message: container, preferredStyle: .actionSheet)
+        let selected = model.suggestedCloudEnvironment
+        for environment in [GraphCloudEnvironment.development, .production] {
+            let title = environment.rawValue.capitalized + (environment == selected ? " (selected)" : "")
+            alert.addAction(UIAlertAction(title: title, style: .default) { _ in
+                self.run { try await self.model.connect(container: container, environment: environment) }
+            })
+        }
+        alert.addAction(UIAlertAction(title: "Different container", style: .default) { _ in self.enterCloudContainer() })
+        presentCloudOptions(alert)
+    }
+    private func enterCloudContainer() {
+        form("Cloud container", fields: ["Entitled CloudKit container"], defaults: [model.suggestedCloudContainer ?? ""]) { values in
+            do { try self.model.rememberCloudConfiguration(container: values[0], environment: self.model.suggestedCloudEnvironment) }
+            catch { self.model.recordFailure(error); return }
+            self.chooseCloudEnvironment(container: values[0].trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+    }
+    private func presentCloudOptions(_ alert: UIAlertController) {
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.popoverPresentationController?.sourceView = view
+        alert.popoverPresentationController?.sourceRect = view.bounds
         present(alert, animated: true)
     }
     private func form(_ title: String, fields: [String], defaults: [String] = [], action: @escaping ([String]) -> Void) {

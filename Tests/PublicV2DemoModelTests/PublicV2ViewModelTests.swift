@@ -6,6 +6,57 @@ import GraphEvo
 @MainActor @Suite struct PublicV2ViewModelTests {
     private func root() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent("PublicV2Demo-" + UUID().uuidString) }
 
+    @Test func cloudPreferencesSurviveRestartAndWorkspaceChangesWithoutOpeningTransport() async throws {
+        let root = root(); defer { try? FileManager.default.removeItem(at: root) }
+        let model = try PublicV2ViewModel(baseURL: root, defaultContainer: "iCloud.example.bundled")
+        #expect(model.suggestedCloudContainer == "iCloud.example.bundled")
+        try model.rememberCloudConfiguration(container: " iCloud.example.saved ", environment: .production)
+        try await model.newWorkspace()
+        let reopened = try PublicV2ViewModel(baseURL: root)
+        #expect(reopened.suggestedCloudContainer == "iCloud.example.saved")
+        #expect(reopened.suggestedCloudEnvironment == .production)
+        #expect(reopened.cloudState == nil)
+        try reopened.stageNativeInvitation(url: URL(string: "https://www.icloud.com/share/fixture")!, container: "iCloud.example.invited")
+        #expect(reopened.suggestedCloudContainer == "iCloud.example.invited")
+        #expect(reopened.suggestedCloudEnvironment == .development)
+        #expect(reopened.cloudPreferences?.container == "iCloud.example.saved")
+    }
+    @Test func invalidCloudPreferencesDoNotOverwriteSavedConfiguration() throws {
+        let root = root(); defer { try? FileManager.default.removeItem(at: root) }
+        let model = try PublicV2ViewModel(baseURL: root)
+        try model.rememberCloudConfiguration(container: "iCloud.example.valid", environment: .development)
+        #expect(throws: (any Error).self) { try model.rememberCloudConfiguration(container: "  ", environment: .production) }
+        #expect(throws: (any Error).self) { try model.rememberCloudConfiguration(container: String(repeating: "x", count: 4097), environment: .production) }
+        let reopened = try PublicV2ViewModel(baseURL: root)
+        #expect(reopened.cloudPreferences == model.cloudPreferences)
+    }
+
+    @Test func corruptCloudSettingsDoNotBlockLocalOpeningOrEraseExistingFiles() async throws {
+        let root = root(); defer { try? FileManager.default.removeItem(at: root) }
+        let first = try PublicV2ViewModel(baseURL: root)
+        try await first.create(); try await first.addNote(); try await first.close()
+        let settings = root.appendingPathComponent("cloud-preferences.json"), corrupt = Data([0, 1, 2])
+        try corrupt.write(to: settings)
+        let second = try PublicV2ViewModel(baseURL: root)
+        #expect(second.cloudPreferences == nil)
+        #expect(second.message.contains("Local workspace is available"))
+        try await second.open()
+        #expect(second.notes.count == 1 && second.cloudState == nil)
+        #expect(try Data(contentsOf: settings) == corrupt)
+        try await second.close()
+    }
+
+    @Test func copiedSupportStatusExcludesInvitationURLsAndErrorPayloads() throws {
+        let root = root(); defer { try? FileManager.default.removeItem(at: root) }
+        let model = try PublicV2ViewModel(baseURL: root)
+        let url = URL(string: "https://www.icloud.com/share/private-capability")!
+        try model.stageNativeInvitation(url: url, container: "iCloud.example.fixture")
+        model.recordFailure(NSError(domain: "Fixture", code: 7, userInfo: [NSLocalizedDescriptionKey: "private-error-payload"]))
+        #expect(model.supportSummary.contains("Fixture:7"))
+        #expect(!model.supportSummary.contains(url.absoluteString))
+        #expect(!model.supportSummary.contains("private-error-payload"))
+    }
+
     @Test func reopeningKeepsTheWorkspaceIdentityAndLocalNotes() async throws {
         let root = root(); defer { try? FileManager.default.removeItem(at: root) }
         let first = try PublicV2ViewModel(baseURL: root)
@@ -35,10 +86,12 @@ import GraphEvo
     @Test func openingMissingStoreDoesNotCreateOneAndNewWorkspacePreservesOldFiles() async throws {
         let root = root(); defer { try? FileManager.default.removeItem(at: root) }
         let model = try PublicV2ViewModel(baseURL: root), previous = model.directory
+        let previousContext = model.context
         await #expect(throws: GraphStoreError.self) { try await model.open() }
         #expect(!FileManager.default.fileExists(atPath: previous.appendingPathComponent("Graph.sqlite").path))
         try await model.create(); try await model.addNote(); try await model.newWorkspace()
         #expect(model.directory != previous)
+        #expect(model.context !== previousContext)
         #expect(FileManager.default.fileExists(atPath: previous.appendingPathComponent("Graph.sqlite").path))
         #expect(!FileManager.default.fileExists(atPath: model.directory.appendingPathComponent("Graph.sqlite").path))
         #expect(model.notes.isEmpty)

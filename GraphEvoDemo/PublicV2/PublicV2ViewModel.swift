@@ -31,7 +31,26 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
             zoneName = "Demo-" + UUID().uuidString
         }
     }
-    let context: GraphContext
+    struct CloudPreferences: Codable, Equatable {
+        let container: String
+        let environment: GraphCloudEnvironment
+    }
+    private(set) var cloudPreferences: CloudPreferences?
+    private let defaultContainer: String?
+    var suggestedCloudContainer: String? { incomingInvitations.first?.container ?? cloudPreferences?.container ?? defaultContainer }
+    var suggestedCloudEnvironment: GraphCloudEnvironment {
+        guard cloudPreferences?.container == suggestedCloudContainer else { return .development }
+        return cloudPreferences?.environment ?? .development
+    }
+    func rememberCloudConfiguration(container: String, environment: GraphCloudEnvironment) throws {
+        let identifier = container.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !identifier.isEmpty, identifier.utf8.count <= 4096 else { throw GraphCloudConnectionError.invalidConfiguration }
+        let value = CloudPreferences(container: identifier, environment: environment)
+        try JSONEncoder().encode(value).write(to: baseURL.appendingPathComponent("cloud-preferences.json"), options: .atomic)
+        cloudPreferences = value
+    }
+    private(set) var context: GraphContext
+    private var foregroundActive = false
     private let baseURL: URL
     private(set) var directory: URL
     private var workspace: Workspace
@@ -57,6 +76,7 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
     private(set) var message = "Create a local graph or select an existing workspace."
     private(set) var isBusy = false
     private(set) var convertedNodeCount: Int?
+    private(set) var lastIssueCode: String?
     var onChange: (() -> Void)?
     var accountDescription: String {
         switch accountState {
@@ -84,14 +104,34 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
     }
     var graphID: GraphID { workspace.graphID }
     var zoneName: String { workspace.zoneName }
+    var zoneDescription: String { workspace.sharedJoinID == nil ? workspace.zoneName : "Shared zone from accepted Apple invitation" }
+    var supportSummary: String {
+        ["GraphEvo 2", "Graph: " + graphID.rawValue.uuidString,
+         "Local: " + accountDescription, "Cloud: " + cloudDescription,
+         "Sharing: " + sharingDescription, "Pending invitations: " + String(incomingInvitations.count),
+         "Issue: " + (lastIssueCode ?? "none")].joined(separator: "\n")
+    }
     var canRead: Bool {
         switch accountState { case .isolated: return false; default: return graph != nil }
     }
     private var storeURL: URL { directory.appendingPathComponent("Graph.sqlite") }
     private var descriptorURL: URL { directory.appendingPathComponent("workspace.json") }
 
-    init(baseURL: URL, context: GraphContext = GraphContext()) throws {
-        self.baseURL = baseURL; self.context = context
+    init(baseURL: URL, context: GraphContext = GraphContext(), defaultContainer: String? = nil) throws {
+        self.baseURL = baseURL; self.context = context; self.defaultContainer = defaultContainer
+        let preferences = baseURL.appendingPathComponent("cloud-preferences.json")
+        if FileManager.default.fileExists(atPath: preferences.path) {
+            do {
+                let bytes = try Data(contentsOf: preferences)
+                guard bytes.count <= 16 * 1024 else { throw GraphCloudConnectionError.invalidConfiguration }
+                let value = try JSONDecoder().decode(CloudPreferences.self, from: bytes)
+                guard !value.container.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      value.container.utf8.count <= 4096 else { throw GraphCloudConnectionError.invalidConfiguration }
+                cloudPreferences = value
+            } catch {
+                message = "Saved cloud settings are invalid. Local workspace is available; choose cloud settings again."
+            }
+        }
         let pending = baseURL.appendingPathComponent("incoming-invitations.json")
         if FileManager.default.fileExists(atPath: pending.path) {
             let bytes = try Data(contentsOf: pending)
@@ -188,6 +228,8 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
     func connect(container: String, environment: GraphCloudEnvironment) async throws {
         try await perform {
             guard cloud == nil else { throw PublicV2DemoError.busy }
+            try rememberCloudConfiguration(container: container, environment: environment)
+            guard let container = cloudPreferences?.container else { throw GraphCloudConnectionError.invalidConfiguration }
             cloud = try await context.connectCloud(using: .init(containerIdentifier: container, environment: environment,
                 directory: directory.appendingPathComponent("CloudSession"), allowsSessionUpgradeFromV8: true))
             guard let cloud else { return }
@@ -220,7 +262,7 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         try await context.refreshCloudAccounts()
         if let cloud { try await cloud.retry() }
     }
-    func setForegroundActive(_ active: Bool) async throws { try await context.setForegroundActive(active) }
+    func setForegroundActive(_ active: Bool) async throws { try await context.setForegroundActive(active); foregroundActive = active }
 
     func convertV1(sourceDirectory: URL, sqliteName: String, stoppedWritersConfirmed: Bool) async throws {
         try await perform {
@@ -275,11 +317,19 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         if let sharing { try await sharing.close(); self.sharing = nil }
         if let cloud { try await cloud.close(); self.cloud = nil; cloudState = nil }
         if let graph { try await graph.close(); self.graph = nil }
-        notes = []; onChange?()
+        notes = []; invitations = []; sharingDescription = "Not inspected"; sharingTask = nil
+        onChange?()
     }
     func newWorkspace() async throws {
         try await perform {
+            if workspace.sharedJoinID != nil, let cloud {
+                let status = try await cloud.sharingStatus(for: graphID)
+                guard !status.remoteOperationPending else { throw GraphStoreError.pendingNativeOperation }
+            }
             try await close()
+            let nextContext = GraphContext()
+            try await nextContext.setForegroundActive(foregroundActive)
+            context = nextContext
             let id = UUID(); directory = baseURL.appendingPathComponent(id.uuidString, isDirectory: true); workspace = Workspace()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try JSONEncoder().encode(workspace).write(to: descriptorURL, options: .atomic)
@@ -383,8 +433,19 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         message = "Owner stop-sharing command recorded; owner data is retained."; onChange?()
     }
     func recordFailure(_ error: any Error) {
+        let native = error as NSError
+        lastIssueCode = String(native.domain.prefix(128)) + ":" + String(native.code)
         switch error {
         case GraphStoreError.accountIsolated: notes = []; message = "Local data is isolated until its account is verified."
+        case GraphStoreError.readOnly, GraphStoreError.permissionDenied: message = "This graph is read-only. Ask the owner to allow changes, then refresh sharing status."
+        case GraphStoreError.pendingNativeOperation: message = "A sharing operation is still pending. Refresh sharing status before switching workspace."
+        case GraphStoreError.closed: message = "This graph handle is closed. Reconnect and resume its existing workspace."
+        case GraphStoreError.ownershipConflict: message = "Another graph owner still reserves this identity or location. Preserve this workspace and retry after cleanup."
+        case GraphStoreError.persistence(let underlying): recordFailure(underlying); return
+        case GraphCloudConnectionError.operationFailed(_, let underlying): recordFailure(underlying); return
+        case GraphCloudDiscoveryError.invalidInvitation: message = "Apple could not validate this invitation for the current account. Preserve it and check its sharing access."
+        case GraphCloudDiscoveryError.invalidJoin: message = "This invitation cannot open the selected workspace. Resume its original invitation and workspace."
+        case GraphCloudConnectionError.closed: message = "Cloud is disconnected. Reconnect using the saved configuration, then resume the invitation."
         case PublicV2DemoError.confirmationRequired: message = "Confirm that all source writers are stopped before conversion."
         case PublicV2DemoError.invalidSource: message = "Select a complete source directory and an exact SQLite filename."
         case PublicV2DemoError.invitationContainerMismatch: message = "Connect the CloudKit container used by this Apple invitation."
@@ -398,7 +459,7 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         case GraphCloudDiscoveryError.invalidDescriptor, GraphCloudDiscoveryError.unsupportedDescriptor: message = "Graph identification metadata is invalid or unsupported. Preserve this workspace and use a compatible library."
         case GraphCloudConnectionError.notReady: message = "Cloud transport is not ready; check its account state."
         case GraphCloudConnectionError.invalidConfiguration: message = "Provide an entitled v2 container and its development or production environment."
-        default: message = "Operation failed. Check account/connection state and the explicit operation prerequisites."
+        default: message = "Operation failed. Existing workspace data is preserved. Diagnostic: " + (lastIssueCode ?? "unavailable")
         }
         onChange?()
     }
