@@ -1,4 +1,5 @@
 import Foundation
+import CloudKit
 import GraphEvo
 
 struct PublicV2Note: GraphModel, Sendable {
@@ -15,7 +16,7 @@ struct PublicV2Note: GraphModel, Sendable {
     }
 }
 
-enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, invalidRoute, confirmationRequired, populatedReplica }
+enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, invalidRoute, confirmationRequired, populatedReplica, invitationContainerMismatch }
 
 /// The app owns this context. View controllers forward actions and render detached values.
 @MainActor final class PublicV2ViewModel {
@@ -23,6 +24,7 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         var graphID: GraphID
         let operationID: UUID
         let activationID: UUID
+        var sharedJoinID: UUID? = nil
         var zoneName: String
         init() {
             graphID = GraphID(); operationID = UUID(); activationID = UUID()
@@ -35,6 +37,16 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
     private var workspace: Workspace
     private var graph: GraphStore?
     private var cloud: GraphCloudConnection?
+    private var configuredContainer: String?
+    private var sharing: GraphCloudSharingPresentation?
+    private var sharingTask: Task<Void, Never>?
+    struct IncomingInvitation: Codable, Equatable {
+        let url: URL
+        let container: String
+    }
+    private(set) var incomingInvitations: [IncomingInvitation] = []
+    private(set) var invitations: [GraphCloudJoinState] = []
+    private(set) var sharingDescription = "Not inspected"
     private var graphTask: Task<Void, Never>?
     private var cloudTask: Task<Void, Never>?
     private var notesTask: Task<Void, Never>?
@@ -80,6 +92,13 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
 
     init(baseURL: URL, context: GraphContext = GraphContext()) throws {
         self.baseURL = baseURL; self.context = context
+        let pending = baseURL.appendingPathComponent("incoming-invitations.json")
+        if FileManager.default.fileExists(atPath: pending.path) {
+            let bytes = try Data(contentsOf: pending)
+            guard bytes.count <= 128 * 1024 else { throw PublicV2DemoError.invalidRoute }
+            incomingInvitations = try JSONDecoder().decode([IncomingInvitation].self, from: bytes)
+            guard incomingInvitations.count <= 16 else { throw PublicV2DemoError.invalidRoute }
+        }
         let pointer = baseURL.appendingPathComponent("current-workspace.json")
         if FileManager.default.fileExists(atPath: pointer.path) {
             let id = try JSONDecoder().decode(UUID.self, from: Data(contentsOf: pointer))
@@ -94,9 +113,10 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
     }
 
     deinit {
-        graphTask?.cancel(); cloudTask?.cancel(); notesTask?.cancel()
-        let graph = graph, cloud = cloud
+        graphTask?.cancel(); cloudTask?.cancel(); notesTask?.cancel(); sharingTask?.cancel()
+        let graph = graph, cloud = cloud, sharing = sharing
         Task {
+            if let sharing { try? await sharing.close() }
             if let cloud { try? await cloud.close() }
             if let graph { try? await graph.close() }
         }
@@ -169,8 +189,9 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         try await perform {
             guard cloud == nil else { throw PublicV2DemoError.busy }
             cloud = try await context.connectCloud(using: .init(containerIdentifier: container, environment: environment,
-                directory: directory.appendingPathComponent("CloudSession")))
+                directory: directory.appendingPathComponent("CloudSession"), allowsSessionUpgradeFromV8: true))
             guard let cloud else { return }
+            configuredContainer = container
             cloudTask = Task { [weak self] in
                 do {
                     let observation = try await cloud.observeState()
@@ -250,7 +271,8 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
         }
     }
     func close() async throws {
-        graphTask?.cancel(); cloudTask?.cancel(); notesTask?.cancel(); graphTask = nil; cloudTask = nil; notesTask = nil; notesGeneration = UUID()
+        graphTask?.cancel(); cloudTask?.cancel(); notesTask?.cancel(); sharingTask?.cancel(); graphTask = nil; cloudTask = nil; notesTask = nil; notesGeneration = UUID()
+        if let sharing { try await sharing.close(); self.sharing = nil }
         if let cloud { try await cloud.close(); self.cloud = nil; cloudState = nil }
         if let graph { try await graph.close(); self.graph = nil }
         notes = []; onChange?()
@@ -266,15 +288,114 @@ enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, i
             message = "New workspace selected. Previous files are preserved."
         }
     }
+    func stageNativeInvitation(url: URL, container: String) throws {
+        guard url.scheme == "https", url.host?.isEmpty == false, url.absoluteString.utf8.count <= 4096,
+              !container.isEmpty, container.utf8.count <= 4096 else { throw PublicV2DemoError.invalidRoute }
+        let value = IncomingInvitation(url: url, container: container)
+        if !incomingInvitations.contains(value) {
+            guard incomingInvitations.count < 16 else { throw PublicV2DemoError.busy }
+            var next = incomingInvitations; next.append(value)
+            let encoded = try JSONEncoder().encode(next)
+            guard encoded.count <= 128 * 1024 else { throw PublicV2DemoError.busy }
+            try encoded.write(to: baseURL.appendingPathComponent("incoming-invitations.json"), options: .atomic)
+            incomingInvitations = next
+        }
+        message = "Apple invitation retained. Connect its container with the correct environment, then accept the pending invitation."
+        onChange?()
+    }
+    func prepareNativeSharing() async throws -> GraphCloudSharingPresentation {
+        guard let graph, let cloud, sharing == nil else { throw PublicV2DemoError.busy }
+        let prepared = try await cloud.prepareSharing(for: graph, title: "GraphEvo Demo graph")
+        sharing = prepared
+        return prepared
+    }
+    func releaseNativeSharing() async throws {
+        if let sharing { try await sharing.close(); self.sharing = nil }
+    }
+    func acceptPendingNativeInvitation() async throws {
+        try await perform {
+            guard let cloud, let pending = incomingInvitations.first else { throw PublicV2DemoError.closed }
+            guard pending.container == configuredContainer else { throw PublicV2DemoError.invitationContainerMismatch }
+            guard graph == nil, !FileManager.default.fileExists(atPath: storeURL.path) else { throw PublicV2DemoError.populatedReplica }
+            let join = try await cloud.acceptInvitation(at: pending.url)
+            let state = try await join.state
+            invitations = [state]
+            // Once an intent is durable, its connection journal owns restart recovery.
+            let remaining = Array(incomingInvitations.dropFirst())
+            try JSONEncoder().encode(remaining).write(to: baseURL.appendingPathComponent("incoming-invitations.json"), options: .atomic)
+            incomingInvitations = remaining
+            message = "Invitation retained: " + state.phase.rawValue + ". Choose a ready invitation to open its replica."
+        }
+    }
+    func refreshInvitations() async throws {
+        guard let cloud else { throw PublicV2DemoError.closed }
+        invitations = []
+        for join in try await cloud.pendingInvitations() {
+            var state = try await join.state
+            if [.acceptancePending, .discoveringGraph, .discarding].contains(state.phase) {
+                try? await join.retry(); state = try await join.state
+            }
+            invitations.append(state)
+        }
+        onChange?()
+    }
+    func openSharedInvitation(_ joinID: UUID) async throws {
+        try await perform {
+            guard let cloud, graph == nil else { throw PublicV2DemoError.busy }
+            let joins = try await cloud.pendingInvitations()
+            guard let join = joins.first(where: { $0.id == joinID }), let id = try await join.state.graphID else { throw PublicV2DemoError.invalidRoute }
+            let exists = FileManager.default.fileExists(atPath: storeURL.path)
+            guard !exists || (workspace.sharedJoinID == joinID && workspace.graphID == id) else { throw PublicV2DemoError.populatedReplica }
+            workspace.graphID = id; workspace.sharedJoinID = joinID
+            try JSONEncoder().encode(workspace).write(to: descriptorURL, options: .atomic)
+            try await adopt(try await cloud.openReplica(for: join, at: storeURL))
+            message = "Shared replica opened. Acceptance does not certify complete import."
+        }
+    }
+    func inspectSharing() async throws {
+        guard let graph, let cloud else { throw PublicV2DemoError.closed }
+        let status = try await cloud.refreshSharing(for: graph.id)
+        applySharing(status)
+        sharingTask?.cancel()
+        sharingTask = Task { [weak self, cloud] in
+            do {
+                let values = try await cloud.observeSharing(for: status.graphID)
+                for await value in values { guard !Task.isCancelled else { break }; self?.applySharing(value) }
+            } catch { self?.recordFailure(error) }
+        }
+    }
+    private func applySharing(_ status: GraphCloudSharingStatus) {
+        sharingDescription = status.role.rawValue + " / " + status.phase.rawValue + (status.permission.map { " / " + $0.rawValue } ?? "") + (status.remoteOperationPending ? " / remote command pending" : "")
+        if [.leaving, .purging, .removed].contains(status.phase) {
+            notesTask?.cancel(); notes = []
+        }
+        onChange?()
+    }
+    func leaveSharing() async throws {
+        guard let graph, let cloud else { throw PublicV2DemoError.closed }
+        applySharing(try await cloud.leaveSharedGraph(graph))
+        notesTask?.cancel(); graphTask?.cancel(); try await graph.close(); self.graph = nil
+        message = "Local shared replica removed. Inspect status for a pending remote leave."; onChange?()
+    }
+    func stopSharing() async throws {
+        guard let graph, let cloud else { throw PublicV2DemoError.closed }
+        applySharing(try await cloud.stopSharing(graph))
+        message = "Owner stop-sharing command recorded; owner data is retained."; onChange?()
+    }
     func recordFailure(_ error: any Error) {
         switch error {
         case GraphStoreError.accountIsolated: notes = []; message = "Local data is isolated until its account is verified."
         case PublicV2DemoError.confirmationRequired: message = "Confirm that all source writers are stopped before conversion."
         case PublicV2DemoError.invalidSource: message = "Select a complete source directory and an exact SQLite filename."
+        case PublicV2DemoError.invitationContainerMismatch: message = "Connect the CloudKit container used by this Apple invitation."
         case PublicV2DemoError.invalidRoute: message = "Enter the owner Graph UUID and exact private zone name."
         case PublicV2DemoError.missingNote: message = "Create a demo note before importing an attachment."
         case PublicV2DemoError.populatedReplica: message = "Use an empty workspace or resume its original replica route."
         case PublicV2DemoError.busy: message = "An operation or an existing graph already owns this workspace."
+        case GraphCloudDiscoveryError.busy: message = "Cloud control is busy; retry after the current turn finishes."
+        case GraphCloudDiscoveryError.graphPaused: message = "Resume synchronization for this graph before sharing."
+        case GraphCloudDiscoveryError.metadataPending, GraphCloudSharingError.metadataPending: message = "Native sharing metadata is pending; retry the same operation."
+        case GraphCloudDiscoveryError.invalidDescriptor, GraphCloudDiscoveryError.unsupportedDescriptor: message = "Graph identification metadata is invalid or unsupported. Preserve this workspace and use a compatible library."
         case GraphCloudConnectionError.notReady: message = "Cloud transport is not ready; check its account state."
         case GraphCloudConnectionError.invalidConfiguration: message = "Provide an entitled v2 container and its development or production environment."
         default: message = "Operation failed. Check account/connection state and the explicit operation prerequisites."

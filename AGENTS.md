@@ -92,3 +92,12 @@ Account isolation must clear cached notes and replace query subscriptions after
 verification. Keep the explicit source/authority/peer prerequisites and stable
 operation UUIDs. Native staged conversion preserves payloads; attachment
 optimization remains consumer-owned. See docs/features/public-v2-entry.md.
+
+H02 extends the same explicit v2 screen with GraphEvo's native sharing adapter.
+Route cold/warm CKShare metadata through the v2 controller; retain bounded invite
+URL/container state without printing it or opening the legacy stack. Never replace
+a populated workspace on invitation acceptance. Keep durable join/workspace IDs
+before opening a replica, observe permissions and confirm destructive leave/stop.
+All dependency pins must agree on the reviewed library integration revision.
+Injected/model/Simulator evidence remains distinct from native two-account device
+acceptance. See docs/features/public-v2-sharing.md.

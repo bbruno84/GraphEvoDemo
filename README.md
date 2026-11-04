@@ -8,7 +8,7 @@ GraphEvoDemo is the companion iOS application for [GraphEvo](https://github.com/
 - iOS 17.6 or later
 - A configured CloudKit container for synchronization features
 
-The Xcode project pins reviewed GraphEvo 2 integration revision `a1097ff1`. Open
+The Xcode project pins an exact reviewed GraphEvo 2 revision. Open
 `GraphEvoDemo.xcodeproj` in Xcode and select the `GraphEvoDemo` scheme to build
 the public v2 entry and retained v1 compatibility flow.
 
@@ -19,7 +19,8 @@ The app is distributed under the MIT License. See [LICENSE.md](LICENSE.md). Grap
 The launch screen selects v1 or a separate v2 workspace before either stack is
 opened. The [public v2 guide](docs/features/public-v2-entry.md) describes local
 opening, account-aware private sync, explicit stopped-source v1 conversion and
-authoritative empty-peer recovery. The v2 view model owns its GraphContext;
+authoritative empty-peer recovery. The [native sharing guide](docs/features/public-v2-sharing.md)
+covers Apple invitations, graph discovery and participant lifecycle. The v2 view model owns its GraphContext;
 there is no new global graph singleton or automatic user-store cutover.
 
 The public v2 model tests run with `swift test` (macOS 14+). The iOS application
