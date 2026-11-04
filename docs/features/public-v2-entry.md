@@ -78,6 +78,7 @@ workspaces, explicit stopped-source prerequisites, duplicate-open refusal and
 updates from independent feature leases. The app builds on iOS Simulator. Seven model cases pass locally; simulator UI
 smoke covers explicit v2 selection, local creation, note insertion and reopening
 the same persisted note after releasing the previous UI owner. The pinned
-library revision is 4c253f2a (reviewed H01 #150, full checkpoint #41811987802).
+library revision is a1097ff1 (reviewed H01 #150, full checkpoint #41811987802,
+plus binding correction #151 and v2 checkpoint #41815151417).
 Injected library tests exercise cloud/activation/peer recovery. Local model/UI
 checks are not a physical CloudKit/account-change certificate.

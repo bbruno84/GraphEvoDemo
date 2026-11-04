@@ -8,7 +8,7 @@ GraphEvoDemo is the companion iOS application for [GraphEvo](https://github.com/
 - iOS 17.6 or later
 - A configured CloudKit container for synchronization features
 
-The Xcode project pins reviewed GraphEvo 2 integration revision `4c253f2a`. Open
+The Xcode project pins reviewed GraphEvo 2 integration revision `a1097ff1`. Open
 `GraphEvoDemo.xcodeproj` in Xcode and select the `GraphEvoDemo` scheme to build
 the public v2 entry and retained v1 compatibility flow.
 
