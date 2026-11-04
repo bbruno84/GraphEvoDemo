@@ -29,6 +29,9 @@ file. Joining intent is durable in that workspace's CloudSession before native
 acceptance, and the workspace records graph/join identity before replica opening.
 Resume uses the same session directory; no native store/token copies are used.
 A successfully opened replica is not proof that all records/attachments arrived.
+The participant card identifies its zone as managed by the accepted Apple invitation; the
+workspace's generated private-zone name is only an owner-binding input and is
+not the participant route. GraphID remains comparable across both devices.
 
 **Inspect sharing status** displays membership and starts newest-state observation.
 **Leave shared graph** confirms destruction of the local replica, attachments and
@@ -74,3 +77,47 @@ Record exact library/demo revisions, OS/device scope, empty/populated observatio
 and any pending native command or failure. This procedure is not an executed result.
 Do not replay a consumed invitation/mutation or copy a native store/session into a
 replica described as fresh. Account-switch trials retain their separate beta scope.
+
+## Remembered connection settings
+
+The Connect cloud action offers a saved-configuration reconnect, or Development and
+Production buttons. Container/environment choices are retained in the app's
+bounded cloud-preferences.json across restarts and workspace switches. A pending
+Apple invitation supplies its own container in preference to the saved/default
+one. No account identity, share URL or engine token is stored in these preferences.
+Invalid settings leave the local workspace usable and are preserved until the
+user explicitly chooses replacement settings. Connecting remains explicit.
+
+The bundled suggestion comes from GRAPHEVO_DEMO_CLOUD_CONTAINER, also used by
+the CloudKit entitlement; CFBundleIdentifier follows PRODUCT_BUNDLE_IDENTIFIER.
+Local signing overrides can set those build values without editing source files.
+GRAPHEVO_DEMO_DISPLAY_NAME distinguishes a laboratory install in the launcher.
+These build values must match the actual provisioning capability; declaring one
+does not create a registration or grant access.
+
+Each selected workspace owns its GraphContext. New workspace closes the previous
+leases before allocating a new context and carries the current foreground state.
+Pending participant removal commands must settle before switching. Retired sharing
+state and invitation-list snapshots are cleared; incoming invitation envelopes
+remain durable across that switch. Participant zone presentation describes the
+accepted native route rather than the workspace's unrelated private-zone input.
+Known errors explain the needed action; other errors expose only a bounded
+error-domain/code, never account identities, invitation URLs or error userInfo.
+
+The Copy status navigation button copies bounded status categories, graph identity
+and error-domain/code for support. It omits invitation URLs, account identities,
+node contents and error userInfo; tests retain that privacy boundary.
+
+The dependency pin adopts reviewed library integration
+`6432e5954aba7baaf8aab5fd08e1da26741b3cdc`, including the metadata-first history
+repair (#153) and idle context claim release after settled participant removal
+(#154). The retained physical continuation and its restart-assisted reinvitation
+are recorded in the library's H02 result. This pin does not certify restart-free
+reinvitation or the broader account/background/attachment acceptance matrix.
+
+Alpha delivery uses reviewed, affected local verification by default. Remote demo
+CI is opt-in at agreed checkpoints (ci-checkpoint label event or manual dispatch),
+with no automatic rerun for a retained label, dependency pin or intermediate push.
+Runner unavailability is recorded without blocking an otherwise verified,
+authorized alpha merge. Actual failures remain investigated and recorded; beta
+and release acceptance retain their required remote checks.
