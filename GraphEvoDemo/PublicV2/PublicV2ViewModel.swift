@@ -1,0 +1,290 @@
+import Foundation
+import GraphEvo
+
+struct PublicV2Note: GraphModel, Sendable {
+    let id: UUID
+    let title: String
+    static let graphType = "GraphEvoDemo.PublicV2.Note.v1"
+    static let graphKind = GraphNodeKind.entity
+    init(id: UUID = UUID(), title: String) { self.id = id; self.title = title }
+    init(graphRecord: GraphRecord) throws {
+        id = graphRecord.id.rawValue; title = try graphRecord.value(for: "title")
+    }
+    func graphRecord(in graphID: GraphID) throws -> GraphRecord {
+        try GraphRecord(id: graphNodeID(in: graphID), type: Self.graphType, properties: ["title": .string(title)])
+    }
+}
+
+enum PublicV2DemoError: Error { case busy, closed, missingNote, invalidSource, invalidRoute, confirmationRequired, populatedReplica }
+
+/// The app owns this context. View controllers forward actions and render detached values.
+@MainActor final class PublicV2ViewModel {
+    private struct Workspace: Codable {
+        var graphID: GraphID
+        let operationID: UUID
+        let activationID: UUID
+        var zoneName: String
+        init() {
+            graphID = GraphID(); operationID = UUID(); activationID = UUID()
+            zoneName = "Demo-" + UUID().uuidString
+        }
+    }
+    let context: GraphContext
+    private let baseURL: URL
+    private(set) var directory: URL
+    private var workspace: Workspace
+    private var graph: GraphStore?
+    private var cloud: GraphCloudConnection?
+    private var graphTask: Task<Void, Never>?
+    private var cloudTask: Task<Void, Never>?
+    private var notesTask: Task<Void, Never>?
+    private var notesGeneration = UUID()
+    private(set) var notes: [PublicV2Note] = []
+    private(set) var accountState: GraphCloudAccountState = .localOnly
+    private(set) var cloudState: GraphCloudConnectionState?
+    private(set) var message = "Create a local graph or select an existing workspace."
+    private(set) var isBusy = false
+    private(set) var convertedNodeCount: Int?
+    var onChange: (() -> Void)?
+    var accountDescription: String {
+        switch accountState {
+        case .localOnly: return "Local only"
+        case .available: return "Account verified"
+        case .temporarilyUnavailable: return "Cloud unavailable; local access retained"
+        case .isolated(let reason):
+            switch reason {
+            case .verificationRequired: return "Identity verification required"
+            case .signedOut: return "Signed out; data preserved"
+            case .differentAccount: return "Different account; data preserved"
+            case .restricted: return "Account restricted; data preserved"
+            }
+        }
+    }
+    var cloudDescription: String {
+        guard let cloudState else { return "Disconnected" }
+        switch cloudState {
+        case .verifyingAccount: return "Verifying account"
+        case .ready: return "Transport ready"
+        case .temporarilyUnavailable: return "Temporarily unavailable"
+        case .isolated: return "Account isolated"
+        case .failed(let failure): return "Needs attention: " + String(describing: failure.category)
+        }
+    }
+    var graphID: GraphID { workspace.graphID }
+    var zoneName: String { workspace.zoneName }
+    var canRead: Bool {
+        switch accountState { case .isolated: return false; default: return graph != nil }
+    }
+    private var storeURL: URL { directory.appendingPathComponent("Graph.sqlite") }
+    private var descriptorURL: URL { directory.appendingPathComponent("workspace.json") }
+
+    init(baseURL: URL, context: GraphContext = GraphContext()) throws {
+        self.baseURL = baseURL; self.context = context
+        let pointer = baseURL.appendingPathComponent("current-workspace.json")
+        if FileManager.default.fileExists(atPath: pointer.path) {
+            let id = try JSONDecoder().decode(UUID.self, from: Data(contentsOf: pointer))
+            directory = baseURL.appendingPathComponent(id.uuidString, isDirectory: true)
+            workspace = try JSONDecoder().decode(Workspace.self, from: Data(contentsOf: directory.appendingPathComponent("workspace.json")))
+        } else {
+            let id = UUID(); directory = baseURL.appendingPathComponent(id.uuidString, isDirectory: true); workspace = Workspace()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try JSONEncoder().encode(workspace).write(to: directory.appendingPathComponent("workspace.json"), options: .atomic)
+            try JSONEncoder().encode(id).write(to: pointer, options: .atomic)
+        }
+    }
+
+    deinit {
+        graphTask?.cancel(); cloudTask?.cancel(); notesTask?.cancel()
+        let graph = graph, cloud = cloud
+        Task {
+            if let cloud { try? await cloud.close() }
+            if let graph { try? await graph.close() }
+        }
+    }
+
+    func create() async throws { try await perform { guard graph == nil else { throw PublicV2DemoError.busy }; try await adopt(try await context.createGraph(id: graphID, at: storeURL)) } }
+    func open() async throws { try await perform { guard graph == nil else { throw PublicV2DemoError.busy }; try await adopt(try await context.openGraph(id: graphID, at: storeURL)) } }
+    private func adopt(_ opened: GraphStore) async throws {
+        guard graph == nil else { throw PublicV2DemoError.busy }
+        graph = opened
+        applyAccountState(try await opened.cloudAccountState)
+        graphTask = Task { [weak self] in
+            do {
+                let observation = try await opened.observeCloudAccountState()
+                defer { observation.cancel() }
+                for await state in observation {
+                    guard let self, !Task.isCancelled else { break }
+                    self.applyAccountState(state)
+                    if self.canRead { self.observeNotes(opened) }
+                }
+            } catch { self?.recordFailure(error) }
+        }
+        if canRead { try await refreshNotes() }
+        message = "Graph opened. Local availability is shown separately from cloud state."
+    }
+    func refreshNotes() async throws {
+        guard canRead else { throw GraphStoreError.accountIsolated }
+        guard let graph else { throw PublicV2DemoError.closed }
+        let query = GraphQuery<PublicV2Note>(budget: try GraphQueryBudget(maximumCandidates: 10_000))
+            .sorted(by: [GraphQuerySort(.property("title"))])
+        do {
+            let items = try await graph.query(query).items
+            guard canRead, self.graph === graph else { return }
+            notes = items; onChange?()
+        }
+        catch { notes = []; onChange?(); throw error }
+    }
+    private func observeNotes(_ graph: GraphStore) {
+        notesTask?.cancel(); notesGeneration = UUID()
+        let generation = notesGeneration
+        notesTask = Task { [weak self] in
+            do {
+                let query = GraphQuery<PublicV2Note>(budget: try GraphQueryBudget(maximumCandidates: 10_000))
+                    .sorted(by: [GraphQuerySort(.property("title"))])
+                let observation = try await graph.observe(query)
+                defer { observation.cancel() }
+                for await state in observation {
+                    guard let self, !Task.isCancelled, self.notesGeneration == generation, self.canRead else { break }
+                    switch state {
+                    case .value(let result): self.notes = result.items; self.onChange?()
+                    case .failure(let error): self.notes = []; self.recordFailure(error)
+                    }
+                }
+            } catch { if !Task.isCancelled { self?.recordFailure(error) } }
+        }
+    }
+    func applyAccountState(_ state: GraphCloudAccountState) {
+        accountState = state
+        if case .isolated = state { notesTask?.cancel(); notesTask = nil; notesGeneration = UUID(); notes = [] }
+        onChange?()
+    }
+    func addNote() async throws {
+        try await perform {
+            guard let graph else { throw PublicV2DemoError.closed }
+            try await graph.insert(PublicV2Note(title: "Note " + UUID().uuidString.prefix(8)))
+            try await refreshNotes()
+        }
+    }
+    func connect(container: String, environment: GraphCloudEnvironment) async throws {
+        try await perform {
+            guard cloud == nil else { throw PublicV2DemoError.busy }
+            cloud = try await context.connectCloud(using: .init(containerIdentifier: container, environment: environment,
+                directory: directory.appendingPathComponent("CloudSession")))
+            guard let cloud else { return }
+            cloudTask = Task { [weak self] in
+                do {
+                    let observation = try await cloud.observeState()
+                    defer { observation.cancel() }
+                    for await state in observation {
+                        guard let self, !Task.isCancelled else { break }
+                        self.cloudState = state; self.onChange?()
+                    }
+                } catch { self?.recordFailure(error) }
+            }
+        }
+    }
+    func bindPrivate() async throws {
+        try await perform {
+            guard let graph, let cloud else { throw PublicV2DemoError.closed }
+            try await cloud.bindPrivateGraph(graph, zoneName: zoneName)
+            message = "Private binding saved; this is not proof of remote delivery."
+        }
+    }
+    func requestSync() async throws {
+        guard let cloud else { throw PublicV2DemoError.closed }
+        try await cloud.requestSynchronization()
+        message = "Synchronization requested."; onChange?()
+    }
+    func retryAccounts() async throws {
+        try await context.refreshCloudAccounts()
+        if let cloud { try await cloud.retry() }
+    }
+    func setForegroundActive(_ active: Bool) async throws { try await context.setForegroundActive(active) }
+
+    func convertV1(sourceDirectory: URL, sqliteName: String, stoppedWritersConfirmed: Bool) async throws {
+        try await perform {
+            guard stoppedWritersConfirmed else { throw PublicV2DemoError.confirmationRequired }
+            guard sqliteName == (sqliteName as NSString).lastPathComponent, sqliteName.lowercased().hasSuffix(".sqlite") else {
+                throw PublicV2DemoError.invalidSource
+            }
+            guard graph == nil else { throw PublicV2DemoError.busy }
+            let access = sourceDirectory.startAccessingSecurityScopedResource()
+            defer { if access { sourceDirectory.stopAccessingSecurityScopedResource() } }
+            let result = try await context.openGraph(convertingLocalV1: .init(sourceURL: sourceDirectory.appendingPathComponent(sqliteName),
+                destinationURL: storeURL, graphID: graphID, operationID: workspace.operationID,
+                backupRoot: directory.appendingPathComponent("Backups"), reason: "Explicit demo stopped-source conversion"))
+            convertedNodeCount = result.conversion.receipt.nodeIDs.count
+            message = result.conversion.cleanupPending ? "Conversion committed; native cleanup needs attention." : "Conversion committed; receipt retained in the store."
+            try await adopt(result.opening.get())
+        }
+    }
+    func publish(declaration: GraphCloudCutoverDeclaration) async throws {
+        try await perform {
+            guard let cloud else { throw PublicV2DemoError.closed }
+            if try await cloud.activationStatus(for: graphID) == nil {
+                _ = try await cloud.prepareActivation(for: graphID, activationID: workspace.activationID, zoneName: zoneName, declaration: declaration)
+            }
+            let result = try await cloud.advanceActivation(for: graphID)
+            message = "Authority phase: " + result.status.phase.rawValue
+            if let error = result.operationError { throw error }
+        }
+    }
+    func recoverReplica(graphID: GraphID, zoneName: String) async throws {
+        try await perform {
+            guard graph == nil else { throw PublicV2DemoError.populatedReplica }
+            if FileManager.default.fileExists(atPath: storeURL.path), (workspace.graphID != graphID || workspace.zoneName != zoneName) {
+                throw PublicV2DemoError.populatedReplica
+            }
+            guard let cloud else { throw PublicV2DemoError.closed }
+            workspace.graphID = graphID; workspace.zoneName = zoneName
+            try JSONEncoder().encode(workspace).write(to: descriptorURL, options: .atomic)
+            let result = try await cloud.openReplica(id: graphID, at: storeURL, zoneName: zoneName)
+            try await adopt(result.opening.get())
+        }
+    }
+    func importAttachment(from url: URL) async throws {
+        try await perform {
+            guard let graph, let owner = notes.first else { throw PublicV2DemoError.missingNote }
+            let metadata = try await graph.importAttachment(from: url, ownedBy: owner.graphNodeID(in: graphID))
+            message = "Imported attachment: " + metadata.fileName
+        }
+    }
+    func close() async throws {
+        graphTask?.cancel(); cloudTask?.cancel(); notesTask?.cancel(); graphTask = nil; cloudTask = nil; notesTask = nil; notesGeneration = UUID()
+        if let cloud { try await cloud.close(); self.cloud = nil; cloudState = nil }
+        if let graph { try await graph.close(); self.graph = nil }
+        notes = []; onChange?()
+    }
+    func newWorkspace() async throws {
+        try await perform {
+            try await close()
+            let id = UUID(); directory = baseURL.appendingPathComponent(id.uuidString, isDirectory: true); workspace = Workspace()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try JSONEncoder().encode(workspace).write(to: descriptorURL, options: .atomic)
+            try JSONEncoder().encode(id).write(to: baseURL.appendingPathComponent("current-workspace.json"), options: .atomic)
+            convertedNodeCount = nil; accountState = .localOnly
+            message = "New workspace selected. Previous files are preserved."
+        }
+    }
+    func recordFailure(_ error: any Error) {
+        switch error {
+        case GraphStoreError.accountIsolated: notes = []; message = "Local data is isolated until its account is verified."
+        case PublicV2DemoError.confirmationRequired: message = "Confirm that all source writers are stopped before conversion."
+        case PublicV2DemoError.invalidSource: message = "Select a complete source directory and an exact SQLite filename."
+        case PublicV2DemoError.invalidRoute: message = "Enter the owner Graph UUID and exact private zone name."
+        case PublicV2DemoError.missingNote: message = "Create a demo note before importing an attachment."
+        case PublicV2DemoError.populatedReplica: message = "Use an empty workspace or resume its original replica route."
+        case PublicV2DemoError.busy: message = "An operation or an existing graph already owns this workspace."
+        case GraphCloudConnectionError.notReady: message = "Cloud transport is not ready; check its account state."
+        case GraphCloudConnectionError.invalidConfiguration: message = "Provide an entitled v2 container and its development or production environment."
+        default: message = "Operation failed. Check account/connection state and the explicit operation prerequisites."
+        }
+        onChange?()
+    }
+    private func perform(_ body: () async throws -> Void) async throws {
+        guard !isBusy else { throw PublicV2DemoError.busy }
+        isBusy = true; onChange?()
+        defer { isBusy = false; onChange?() }
+        try await body()
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "originHash" : "1a9b6039e54887b7fd0f321b38c7bbd79e3763706df732a8719a10ced48bf9cd",
+  "pins" : [
+    {
+      "identity" : "graphevo",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bbruno84/GraphEvo.git",
+      "state" : {
+        "revision" : "a1097ff19431489e71a0130b00c0541d25728acb"
+      }
+    }
+  ],
+  "version" : 3
+}
