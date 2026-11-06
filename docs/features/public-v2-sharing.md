@@ -108,12 +108,14 @@ The Copy status navigation button copies bounded status categories, graph identi
 and error-domain/code for support. It omits invitation URLs, account identities,
 node contents and error userInfo; tests retain that privacy boundary.
 
-The dependency pin adopts reviewed library integration
-`6432e5954aba7baaf8aab5fd08e1da26741b3cdc`, including the metadata-first history
-repair (#153) and idle context claim release after settled participant removal
-(#154). The retained physical continuation and its restart-assisted reinvitation
-are recorded in the library's H02 result. This pin does not certify restart-free
-reinvitation or the broader account/background/attachment acceptance matrix.
+The dependency pin uses GraphEvo
+`e0f2a07c2115181a74e359f299a5c10ad47f17fd`, which includes direct App Group
+secondary writes in [GraphEvo #183](https://github.com/bbruno84/GraphEvo/pull/183).
+The Demo continues to exercise the public H02 app flow. For the physical
+check on this pin, leave a synthetic participant graph, accept a new invitation
+without restarting the app, and verify the same graph ID and exact records.
+Use separate CloudKit accounts and the Development environment. Earlier H02
+device results retain the build and scope recorded in the library report.
 
 Alpha delivery uses reviewed, affected local verification by default. Remote demo
 CI is opt-in at agreed checkpoints (ci-checkpoint label event or manual dispatch),
