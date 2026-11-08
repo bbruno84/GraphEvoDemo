@@ -119,3 +119,9 @@ test entitlements launches and passes the UI smoke; no signing workaround or
 personal configuration is committed. Actual new popup acceptance and automatic
 connection on devices remain separate from the maintainer's previous three-flow
 acceptance above. No new hosted CI is requested.
+
+The reviewed UX source is `079cd9e`. Its signed Release build installs and
+launches on iPad and XR, preserving existing app data. Debug signed Simulator
+and Release builds pass without source diagnostics. These deployment results
+do not certify a newly received real invitation's Accept action; that remains
+a device interaction check. No library dependency or native schema changed.
