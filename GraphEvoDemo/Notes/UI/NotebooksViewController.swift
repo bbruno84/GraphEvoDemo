@@ -27,7 +27,7 @@ import UIKit
         render()
     }
     private func render() {
-        navigationItem.prompt = application.issue
+        navigationItem.prompt = application.acceptingInvitation ? "Accepting invitation…" : application.issue
         let old = Set(source.snapshot().itemIdentifiers)
         var snapshot = NSDiffableDataSourceSnapshot<Int, Row>(); snapshot.appendSections([0, 1])
         snapshot.appendItems(application.notebooks.map { .notebook($0.id) }, toSection: 0)
@@ -39,7 +39,7 @@ import UIKit
         if application.notebooks.isEmpty {
             var empty = UIContentUnavailableConfiguration.empty()
             empty.image = UIImage(systemName: "folder.badge.plus"); empty.text = "Your notebooks"
-            empty.secondaryText = "Create a local notebook, or connect iCloud in Settings to find and share notebooks."
+            empty.secondaryText = "Create a notebook. iCloud connects automatically; settings provide configuration and recovery."
             contentUnavailableConfiguration = empty
         } else { contentUnavailableConfiguration = nil }
     }
@@ -107,21 +107,10 @@ import UIKit
         run { try await self.application.discoverNotebooks(); self.refreshControl?.endRefreshing() }
     }
     @objc private func promptNewNotebook() {
-        let alert = UIAlertController(title: "New notebook", message: "Choose where this notebook belongs.", preferredStyle: .alert)
-        alert.addTextField { $0.placeholder = "Notebook name"; $0.autocapitalizationType = .sentences }
-        alert.addAction(UIAlertAction(title: "On this device", style: .default) { [weak self, weak alert] _ in
-            self?.create(name: alert?.textFields?.first?.text ?? "", mode: .local)
-        })
-        alert.addAction(UIAlertAction(title: "iCloud", style: .default) { [weak self, weak alert] _ in
-            self?.create(name: alert?.textFields?.first?.text ?? "", mode: .iCloud)
-        })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel)); present(alert, animated: true)
-    }
-    private func create(name: String, mode: NotebookMode) {
-        run {
-            let session = try await self.application.createNotebook(name: name, mode: mode)
-            self.onSelect?(session.entryID)
-        }
+        let form = NewNotebookViewController(application: application) { [weak self] id in self?.onSelect?(id) }
+        let navigation = UINavigationController(rootViewController: form)
+        navigation.modalPresentationStyle = .formSheet
+        present(navigation, animated: true)
     }
     private func run(_ operation: @escaping @MainActor () async throws -> Void) {
         Task {

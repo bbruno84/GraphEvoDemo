@@ -3,8 +3,9 @@
 ## Source and dependency boundary
 
 Companion [PR #6](https://github.com/bbruno84/GraphEvoDemo/pull/6):
-`codex/notes-demo`, based on `develop` (`8655400`). Implementation `48fafa5`
-is followed only by additional deletion regression/evidence notes. All four
+`codex/notes-demo`, based on `develop` (`8655400`). Initial implementation
+`48fafa5` is followed by deletion regression/evidence notes and the automatic
+connection/invitation UX follow-up recorded below. All four
 GraphEvo pins use integrated `0229766c9d91096eded07ee3abc904417d57b151`.
 GraphEvo prerequisites integrate through #193/#194/#195/#196; their own reports
 retain actual native/CloudKit scope. No hosted CI was requested for this increment.
@@ -93,3 +94,28 @@ arrangement and remains a distinct certificate. VoiceOver/Voice Control, maximum
 Dynamic Type, reduced motion, external keyboard and actual multiwindow usability
 need manual acceptance; accessibility labels/actions and dynamic fonts are present
 but do not substitute for those tests.
+
+## Automatic connection and invitation UX follow-up
+
+The maintainer requested automatic cloud connection, an iCloud-default creation
+switch and invitation acceptance popups. Startup now selects saved preferences or
+the bundled Development configuration. Startup and user operations coalesce the
+same connection attempt; cloud creation/acceptance awaits account readiness with
+a 20-second bound. An explicit invitation acceptance may select its container;
+local creation stays independent. Shared selection restoration waits for readiness.
+
+Four additional Swift 6 model functions verify automatic profile selection,
+missing-configuration local creation, one popup owner across scenes, retained
+invitations after Later/relaunch, explicit re-delivery and scene-dismissal handoff.
+The model checkpoint passes 17 Notes functions plus 12 retained public-entry
+functions. Simulator UI confirms iCloud switch initially on, local creation after
+switching off, a retained synthetic invitation popup on cold launch, Later dismissal
+and re-presentation after relaunch. The synthetic URL is never accepted or sent to
+CloudKit; this is popup evidence, not native invitation acceptance.
+
+The unsigned Simulator build traps in SDK CKContainer initialization when automatic
+startup first touches CloudKit. A properly signed Simulator build with external
+test entitlements launches and passes the UI smoke; no signing workaround or
+personal configuration is committed. Actual new popup acceptance and automatic
+connection on devices remain separate from the maintainer's previous three-flow
+acceptance above. No new hosted CI is requested.

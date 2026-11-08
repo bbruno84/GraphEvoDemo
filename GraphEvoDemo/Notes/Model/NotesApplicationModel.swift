@@ -9,6 +9,7 @@ import GraphEvo
     let context: GraphContext
     let defaultContainer: String?
     private(set) var cloud: GraphCloudConnection?
+    private var connectedPreferences: NotesCloudPreferences?
     private(set) var cloudState: GraphCloudConnectionState?
     private(set) var issue: String?
     private var sessionObservers: [UUID: UUID] = [:]
@@ -18,7 +19,10 @@ import GraphEvo
     private var activeScenes = Set<String>()
     private var cloudTask: Task<Void, Never>?
     private var callbacks: [UUID: () -> Void] = [:]
-    private var connecting = false
+    private var connectionAttempt: (id: UUID, settings: NotesCloudPreferences, task: Task<Void, any Error>)?
+    private var invitationPrompt: NotesInvitation?
+    private var deferredInvitations: [NotesInvitation] = []
+    private(set) var acceptingInvitation = false
     var notebooks: [NotebookEntry] { catalog.entries }
     var cloudReady: Bool { cloudState == .ready }
     var suggestedContainer: String { catalog.invitations.first?.container ?? catalog.preferences?.container ?? defaultContainer ?? "" }
@@ -46,7 +50,7 @@ import GraphEvo
     }
     func recordFailure(_ error: any Error) {
         switch error {
-        case NotesError.cloudNotReady: issue = "Connect iCloud in Settings and wait for account verification. Local notebooks remain available."
+        case NotesError.cloudNotReady: issue = "iCloud is not ready. Check the account or connection and retry; settings are available for configuration. Local notebooks remain available."
         case GraphStoreError.accountIsolated: issue = "This notebook belongs to an unavailable iCloud account. Its data is preserved."
         case GraphStoreError.permissionDenied, GraphStoreError.readOnly: issue = "This notebook is read-only. Ask its owner to allow changes."
         case NotesError.pendingDeletion: issue = "Notebook removal is still pending. Use Retry removal to continue it."
@@ -59,29 +63,60 @@ import GraphEvo
         try await context.setForegroundActive(!activeScenes.isEmpty)
         if active { for session in sessions.values { session.foreground() } }
     }
-    func connectRememberedCloud() async throws {
-        guard cloud == nil, let value = catalog.preferences else { return }
-        try await connect(container: value.container, environment: value.environment)
+    func automaticCloudPreferences(for invitation: NotesInvitation? = nil) -> NotesCloudPreferences? {
+        if let invitation {
+            return NotesCloudPreferences(container: invitation.container,
+                environment: catalog.preferences?.environment ?? .development)
+        }
+        if let remembered = catalog.preferences { return remembered }
+        let container = catalog.invitations.first?.container ?? defaultContainer ?? ""
+        guard !container.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return NotesCloudPreferences(container: container, environment: .development)
+    }
+    func connectAutomatically(for invitation: NotesInvitation? = nil) async throws {
+        guard let settings = automaticCloudPreferences(for: invitation) else { return }
+        if let attempt = connectionAttempt {
+            if attempt.settings == settings { return try await attempt.task.value }
+            // An explicitly accepted invitation may choose a different profile.
+            _ = try? await attempt.task.value
+            if connectionAttempt?.id == attempt.id { connectionAttempt = nil }
+        }
+        if cloud != nil, connectedPreferences == settings { return }
+        try await connect(container: settings.container, environment: settings.environment)
     }
     func connect(container: String, environment: GraphCloudEnvironment) async throws {
-        guard !connecting else { throw NotesError.busy }
-        connecting = true; defer { connecting = false }
+        let settings = NotesCloudPreferences(container: container.trimmingCharacters(in: .whitespacesAndNewlines), environment: environment)
+        if let attempt = connectionAttempt {
+            guard attempt.settings == settings else { throw NotesError.busy }
+            return try await attempt.task.value
+        }
+        let task = Task { try await self.performConnection(settings) }
+        let id = UUID()
+        connectionAttempt = (id, settings, task)
+        defer { if connectionAttempt?.id == id { connectionAttempt = nil } }
+        try await task.value
+    }
+    private func performConnection(_ settings: NotesCloudPreferences) async throws {
+        let container = settings.container, environment = settings.environment
         let previous = catalog.preferences
         try catalog.rememberCloud(container: container, environment: environment)
-        if previous != catalog.preferences {
+        if previous != catalog.preferences || (cloud != nil && connectedPreferences != settings) {
             cloudTask?.cancel()
             for (id, session) in sessions where catalog.entries.first(where: { $0.id == id })?.mode != .local {
                 try await session.close(); sessions.removeValue(forKey: id)
             }
-            try await cloud?.close(); cloud = nil; cloudState = nil
+            try await cloud?.close(); cloud = nil; cloudState = nil; connectedPreferences = nil
         }
-        if let cloud { try await cloud.retry(); return }
+        if let cloud {
+            guard connectedPreferences == settings else { throw NotesError.cloudNotReady }
+            try await cloud.retry(); return
+        }
         guard let settings = catalog.preferences else { throw NotesError.cloudNotReady }
         let configuration = try GraphCloudConnectionConfiguration(containerIdentifier: settings.container, environment: settings.environment,
             directory: catalog.root.appendingPathComponent("Cloud-v12").appendingPathComponent(
                 SHA256.hash(data: Data((settings.environment.rawValue + ":" + settings.container).utf8)).map { String(format: "%02x", $0) }.joined()))
         let cloud = try await context.connectCloud(using: configuration)
-        self.cloud = cloud; cloudState = try await cloud.state
+        self.cloud = cloud; connectedPreferences = settings; cloudState = try await cloud.state
         let updates = try await cloud.observeState()
         cloudTask = Task { [weak self] in
             for await value in updates {
@@ -92,13 +127,41 @@ import GraphEvo
         }
         changed()
     }
+    private func automaticReadyCloud(for invitation: NotesInvitation? = nil) async throws -> GraphCloudConnection {
+        try await connectAutomatically(for: invitation)
+        guard let connection = cloud else { throw NotesError.cloudNotReady }
+        let settings = catalog.preferences
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                let states = try await connection.observeState()
+                defer { states.cancel() }
+                for await state in states {
+                    try Task.checkCancellation()
+                    switch state {
+                    case .ready: return
+                    case .verifyingAccount: continue
+                    default: throw NotesError.cloudNotReady
+                    }
+                }
+                throw NotesError.cloudNotReady
+            }
+            group.addTask { try await Task.sleep(for: .seconds(20)); throw NotesError.cloudNotReady }
+            defer { group.cancelAll() }
+            _ = try await group.next()
+        }
+        guard cloud === connection, catalog.preferences == settings, connectedPreferences == settings else { throw NotesError.cloudNotReady }
+        cloudState = try await connection.state
+        guard cloudReady else { throw NotesError.cloudNotReady }
+        changed()
+        return connection
+    }
     private func requireCloud(for entry: NotebookEntry? = nil) throws -> GraphCloudConnection {
-        guard cloudReady, let cloud else { throw NotesError.cloudNotReady }
+        guard cloudReady, let cloud, connectedPreferences == catalog.preferences else { throw NotesError.cloudNotReady }
         if let entry, entry.cloud != catalog.preferences { throw NotesError.cloudNotReady }
         return cloud
     }
     private func bindOpenNotebooks() async {
-        guard let cloud else { return }
+        guard let cloud, connectedPreferences == catalog.preferences else { return }
         for entry in catalog.entries where entry.mode == .iCloud && entry.cloud == catalog.preferences && !entry.deleting {
             guard let session = sessions[entry.id], let zone = entry.zoneName else { continue }
             do { try await cloud.bindPrivateGraph(session.store, zoneName: zone); session.foreground() }
@@ -109,7 +172,7 @@ import GraphEvo
         guard mode != .shared else { throw NotesError.invalidRecord }
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, name.utf8.count <= 1024 else { throw NotesError.invalidRecord }
-        if mode == .iCloud { _ = try requireCloud() }
+        if mode == .iCloud { _ = try await automaticReadyCloud() }
         let entry = NotebookEntry(mode: mode, zoneName: mode == .iCloud ? "GraphEvoDemoNotes-" + UUID().uuidString : nil,
             cloud: mode == .local ? nil : catalog.preferences, creating: true, localName: name)
         try catalog.save(entry); changed()
@@ -195,15 +258,48 @@ import GraphEvo
         changed()
     }
     func retainInvitation(url: URL, container: String) throws {
-        try catalog.retainInvitation(.init(url: url, container: container)); changed()
+        let invitation = NotesInvitation(url: url, container: container)
+        try catalog.retainInvitation(invitation)
+        deferredInvitations.removeAll { $0 == invitation }
+        changed()
+    }
+    var hasPromptableInvitation: Bool {
+        !acceptingInvitation && invitationPrompt == nil && catalog.invitations.contains { !deferredInvitations.contains($0) }
+    }
+    func claimInvitationPrompt() -> NotesInvitation? {
+        guard !acceptingInvitation, invitationPrompt == nil,
+              let invitation = catalog.invitations.first(where: { !deferredInvitations.contains($0) }) else { return nil }
+        invitationPrompt = invitation
+        return invitation
+    }
+    func finishInvitationPrompt(_ invitation: NotesInvitation, deferUntilNextLaunch: Bool) {
+        guard invitationPrompt == invitation else { return }
+        deferredInvitations = deferredInvitations.filter { catalog.invitations.contains($0) }
+        if deferUntilNextLaunch, catalog.invitations.contains(invitation), !deferredInvitations.contains(invitation) {
+            deferredInvitations.append(invitation)
+        }
+        invitationPrompt = nil; changed()
+    }
+    func acceptInvitation(_ invitation: NotesInvitation) async throws -> UUID? {
+        guard !acceptingInvitation, catalog.invitations.contains(invitation) else { throw NotesError.busy }
+        acceptingInvitation = true; changed()
+        defer { acceptingInvitation = false; changed() }
+        let cloud = try await automaticReadyCloud(for: invitation)
+        let join = try await cloud.acceptInvitation(at: invitation.url)
+        try catalog.consumeInvitation(invitation)
+        try await resumeInvitations(using: cloud)
+        let entry = catalog.entries.first(where: { $0.joinID == join.id })
+        issue = entry == nil ? "The invitation is retained by iCloud. Resume it in Settings when the shared notebook is ready." : nil
+        changed()
+        return entry?.id
     }
     func acceptInvitations() async throws {
-        let cloud = try requireCloud()
-        for invitation in catalog.invitations {
-            guard invitation.container == catalog.preferences?.container else { throw NotesError.cloudNotReady }
-            _ = try await cloud.acceptInvitation(at: invitation.url)
-            try catalog.consumeInvitation(invitation)
-        }
+        guard !acceptingInvitation else { throw NotesError.busy }
+        for invitation in catalog.invitations { _ = try await acceptInvitation(invitation) }
+        let cloud = try await automaticReadyCloud()
+        try await resumeInvitations(using: cloud)
+    }
+    private func resumeInvitations(using cloud: GraphCloudConnection) async throws {
         for join in try await cloud.pendingInvitations() {
             var state = try await join.state
             if [.acceptancePending, .discoveringGraph].contains(state.phase) { try await join.retry(); state = try await join.state }

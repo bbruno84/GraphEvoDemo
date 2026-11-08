@@ -11,6 +11,9 @@ import GraphEvo
     private var editor: NotesEditorViewController?
     private var observation: UUID?
     private var selectionGeneration = UUID()
+    private var invitationRetry: Task<Void, Never>?
+    private var activeInvitation: NotesInvitation?
+    private var waitingToRestoreCloudSelection = false
     init(application: NotesApplicationModel, sceneID: String) {
         self.application = application; self.sceneID = sceneID
         notebooks = NotebooksViewController(application: application)
@@ -26,8 +29,12 @@ import GraphEvo
         observation = application.observe { [weak self] in self?.applicationChanged() }
     }
     deinit {
-        let application = application, token = observation
-        Task { @MainActor in if let token { application.removeObserver(token) } }
+        invitationRetry?.cancel()
+        let application = application, token = observation, invitation = activeInvitation
+        Task { @MainActor in
+            if let token { application.removeObserver(token) }
+            if let invitation { application.finishInvitationPrompt(invitation, deferUntilNextLaunch: false) }
+        }
     }
     required init?(coder: NSCoder) { fatalError("Use the injected application initializer") }
     private func empty(_ title: String, symbol: String) -> UIViewController {
@@ -35,6 +42,51 @@ import GraphEvo
         var configuration = UIContentUnavailableConfiguration.empty()
         configuration.image = UIImage(systemName: symbol); configuration.text = title
         controller.contentUnavailableConfiguration = configuration; return controller
+    }
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        presentPendingInvitationIfPossible()
+    }
+    func presentPendingInvitationIfPossible() {
+        guard invitationRetry == nil, application.hasPromptableInvitation,
+              viewIfLoaded?.window?.windowScene?.activationState == .foregroundActive else { return }
+        guard !hasPresentedController(self) else {
+            // A form or native picker must finish before another modal is shown.
+            invitationRetry = Task { [weak self] in
+                do { try await Task.sleep(for: .milliseconds(500)) } catch { return }
+                self?.invitationRetry = nil
+                self?.presentPendingInvitationIfPossible()
+            }
+            return
+        }
+        guard let invitation = application.claimInvitationPrompt() else { return }
+        activeInvitation = invitation
+        let alert = UIAlertController(title: "Shared notebook invitation",
+            message: "Accept this invitation to connect to iCloud and add the shared notebook? You can also accept it later in Settings.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Later", style: .cancel) { [weak self, weak alert] _ in
+            alert?.dismiss(animated: true) {
+                self?.activeInvitation = nil
+                self?.application.finishInvitationPrompt(invitation, deferUntilNextLaunch: true)
+            }
+        })
+        alert.addAction(UIAlertAction(title: "Accept", style: .default) { [weak self, weak alert] _ in
+            alert?.dismiss(animated: true) {
+                guard let self else { return }
+                Task {
+                    defer {
+                        self.activeInvitation = nil
+                        self.application.finishInvitationPrompt(invitation, deferUntilNextLaunch: true)
+                    }
+                    do {
+                        if let id = try await self.application.acceptInvitation(invitation) { await self.selectNotebook(id) }
+                    } catch { self.application.recordFailure(error); self.showInvitations() }
+                }
+            }
+        })
+        present(alert, animated: true)
+    }
+    private func hasPresentedController(_ controller: UIViewController) -> Bool {
+        controller.presentedViewController != nil || controller.children.contains { hasPresentedController($0) }
     }
     func showInvitations() {
         selectionGeneration = UUID()
@@ -46,7 +98,13 @@ import GraphEvo
     }
     func restoreSelection() {
         let values = UserDefaults.standard.stringArray(forKey: "NotesSelection." + sceneID) ?? []
-        guard let first = values.first, let id = UUID(uuidString: first), application.notebooks.contains(where: { $0.id == id }) else { return }
+        guard let first = values.first, let id = UUID(uuidString: first),
+              let entry = application.notebooks.first(where: { $0.id == id }) else { return }
+        if (entry.mode == .shared || entry.creating || entry.recovering), entry.mode != .local, !application.cloudReady {
+            waitingToRestoreCloudSelection = true
+            return
+        }
+        waitingToRestoreCloudSelection = false
         Task {
             await selectNotebook(id, showColumn: false)
             guard notebookID == id else { return }
@@ -64,6 +122,8 @@ import GraphEvo
         UserDefaults.standard.set(value, forKey: "NotesSelection." + sceneID)
     }
     private func applicationChanged() {
+        presentPendingInvitationIfPossible()
+        if waitingToRestoreCloudSelection, application.cloudReady { restoreSelection() }
         guard let notebookID else { return }
         guard let entry = application.notebooks.first(where: { $0.id == notebookID }), !entry.deleting, !entry.leaving else {
             selectionGeneration = UUID(); editor?.retire(); editor = nil; notes = nil; self.notebookID = nil; noteID = nil; saveSelection()
@@ -79,6 +139,7 @@ import GraphEvo
         }
     }
     func selectNotebook(_ id: UUID, showColumn: Bool = true) async {
+        waitingToRestoreCloudSelection = false
         let generation = UUID(); selectionGeneration = generation
         do {
             let session = try await application.openNotebook(id)

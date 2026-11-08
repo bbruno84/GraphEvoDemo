@@ -16,7 +16,7 @@ import GraphEvo
             let notes = try NotesApplicationModel(root: support.appendingPathComponent("GraphEvoDemo-Notes-v1"),
                 defaultContainer: container, presentationRoot: cache.appendingPathComponent("GraphEvoDemo-Notes-Presentations-v1"))
             notesApplication = notes
-            Task { do { try await notes.connectRememberedCloud() } catch { notes.recordFailure(error) } }
+            Task { do { try await notes.connectAutomatically() } catch { notes.recordFailure(error) } }
         } catch {
             // Preserve malformed/unavailable files. Scene bootstrap presents recovery guidance.
             notesApplication = nil

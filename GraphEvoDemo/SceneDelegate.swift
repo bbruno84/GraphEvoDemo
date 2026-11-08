@@ -25,7 +25,7 @@ import CloudKit
         if let metadata = connectionOptions.cloudKitShareMetadata { retainInvitation(metadata) }
         else { notes?.restoreSelection() }
     }
-    func sceneDidBecomeActive(_ scene: UIScene) { setActive(true) }
+    func sceneDidBecomeActive(_ scene: UIScene) { setActive(true); notes?.presentPendingInvitationIfPossible() }
     func sceneWillResignActive(_ scene: UIScene) { setActive(false) }
     func sceneDidDisconnect(_ scene: UIScene) { setActive(false) }
     private func setActive(_ active: Bool) {
@@ -45,7 +45,7 @@ import CloudKit
             guard let application, let url = metadata.share.url else { throw NotesError.invalidRecord }
             // Persist the incoming capability before connection or replica creation.
             try application.retainInvitation(url: url, container: metadata.containerIdentifier)
-            notes?.showInvitations()
+            notes?.presentPendingInvitationIfPossible()
         } catch {
             let alert = UIAlertController(title: "Invitation unavailable", message: "The invitation could not be retained. Existing files are preserved; open the original Apple invitation again after resolving local storage availability.", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default)); window?.rootViewController?.present(alert, animated: true)

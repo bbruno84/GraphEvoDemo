@@ -6,7 +6,8 @@ the unrelated dirty `feature/verification-laboratory` checkout is preserved.
 
 ## Accepted product decisions
 
-- Each notebook is one graph; creation explicitly selects local or iCloud.
+- Each notebook is one graph; creation explicitly selects local or iCloud through
+  an iCloud switch enabled by default (maintainer UX update, 2026-11-08).
 - Each note has a title, plain text body and automatic immutable creation date.
 - Autosave after 750 ms, with dirty-field patches, visible pending/error state,
   local draft retention and no silent overwrite of observed remote dirty fields.

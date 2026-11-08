@@ -2,9 +2,14 @@
 
 ## Everyday use
 
-Create a notebook with a name and an explicit **On this device** or **iCloud**
-choice. Each notebook is one independent graph. iCloud creation requires a ready
-connection; local creation never requires an iCloud account or connection.
+Create a notebook with a name and the **iCloud** switch, enabled by default.
+Turn the switch off for an **On this device** notebook, then tap **Create**.
+Each notebook is one independent graph. iCloud connects automatically at launch
+using remembered settings, or the bundled container and Development environment
+on first launch. Concurrent startup/creation requests share one connection attempt.
+iCloud creation waits up to 20 seconds for account verification and reports
+unavailability without silently creating a local notebook. Local creation never
+requires an iCloud account or connection.
 
 A note has a title, plain text content and automatic immutable creation date.
 Changes save after 750 milliseconds. “Saved on this device” describes local
@@ -30,14 +35,22 @@ system's finite background allowance.
 
 Settings remembers the container and environment; a bundled identifier or an
 incoming Apple invitation prepopulates the field. Development is appropriate only
-for the signed development test configuration. Connect explicitly, then create
-iCloud notebooks or use **Find my iCloud notebooks** on a fresh catalogue.
+for the signed development test configuration. Automatic connection reuses the
+saved environment. Settings retains **Reconnect iCloud** for manual retry or
+configuration changes, and **Find my iCloud notebooks** on a fresh catalogue.
 Discovery uses the app's zone prefix and GraphEvo system descriptors, never names
 or user-entered graph IDs. Recovery imports into a fresh/resumable replica.
 
 The notebook toolbar opens Apple's native sharing interface. Incoming invitations
-are retained before connection or replica creation. Settings provides **Accept or
-resume invitations** for cold and warm launches. Participant status controls
+are retained before connection or replica creation. Cold and warm invitations
+present an **Accept / Later** popup once the scene is active and other forms or
+native pickers have closed. Only one scene claims a given popup. **Accept** connects
+to the invitation's container, waits for account readiness, accepts only that link
+and opens its notebook when ready. **Later** keeps the capability on disk and
+suppresses repeat prompts until relaunch or explicitly reopening the invitation.
+Failed acceptance retains retryable state; Settings still provides **Accept or
+resume invitations**. Restoring a shared notebook waits for automatic cloud
+readiness. Participant status controls
 editing: read-only notes remain readable, while isolated/revoked content clears
 visible notes, covers and previews. GraphEvo enforces actual access at every scope;
 UI availability is not an authorization substitute. Retained drafts require
@@ -79,3 +92,8 @@ Build the GraphEvoDemo Xcode scheme for UIKit and native picker/sharing integrat
 The [accepted plan](notes-app-plan.md) records physical sharing/recovery acceptance
 scope. Simulator results never certify actual CloudKit, account changes, device
 file-provider availability or assistive-technology user acceptance.
+
+Automatic CloudKit startup requires a properly signed app with its configured
+iCloud entitlements, including Simulator UI testing. The SDK traps on container
+initialization in an unsigned Simulator build; use a signed Simulator build for
+this flow. Offline model tests use no live CloudKit connection.
