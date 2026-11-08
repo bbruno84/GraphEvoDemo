@@ -60,17 +60,32 @@ scene's terminal-removal flags. A dedicated regression verifies the latter.
 No unresolved actionable source finding is recorded at this checkpoint. Device
 and assistive-technology acceptance below remains separate.
 
-## Pending device/user acceptance
+## Maintainer acceptance update
+
+On 2026-11-08 the maintainer reported three successful manual scenarios:
+
+| Scenario | Reported result |
+| --- | --- |
+| Local notebook | Passed |
+| iCloud notebook | Passed |
+| Shared notebook | Passed |
+
+This is maintainer-reported acceptance of the three notebook flows, additional
+to build/install and library-probe evidence. The report does not specify individual
+permission changes, cover/File transfer, participant leave, owner deletion or
+which exact build was exercised; those details are not inferred from “3 passed”.
+
+## Remaining device/user acceptance
 
 An initial signed Release Notes build is installed and launched on iPad and iPhone XR,
 with the test container prefilled. They use different CloudKit accounts. The
 final `48fafa5` Release build also passes without source diagnostics; it still
 needs deployment and device confirmation after the final lifecycle/UI review
-changes. Do not replace the running build during the pending human invitation
-interaction. The
-human Apple invitation/acceptance pass is pending; do not report Notes sharing,
-read-only/revocation, bidirectional note/File/cover sync, participant leave or
-owner deletion on both devices as passed merely because library probes passed.
+changes. The maintainer's report above now confirms the shared-notebook flow;
+its individual invitation steps were not separately itemized. Read-only/revocation,
+bidirectional note/File/cover transfer, participant leave and owner deletion on
+both devices remain without scenario-specific Notes acceptance evidence. Library
+probes retain their own scope and do not substitute for these consumer UI checks.
 
 Fresh same-account private discovery/recovery was proven separately by library
 probes on iPad. Two-device same-account recovery requires the relevant account

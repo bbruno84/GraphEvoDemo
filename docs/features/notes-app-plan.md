@@ -92,6 +92,8 @@ opening/removal races, autosave conflicts and presentation-copy lifetime. Debug
 Simulator and signed device Release builds pass. iPhone/iPad Simulator UI smoke
 covers local creation, autosave, reopening and definitive deletion after force
 quit; native photo/document pickers were presented. The Release Notes app is
-installed and launched on iPad and XR. Native invitation/account/device acceptance
-remains pending the human Apple interaction; no cross-device Notes completion is
-claimed by these build/install results.
+installed and launched on iPad and XR. The maintainer subsequently reported
+three manual scenarios passed: local notebook, iCloud notebook and shared notebook.
+See [acceptance evidence](notes-app-acceptance.md) for the recorded scope and
+remaining specific device checks; these three results do not imply completion of
+every permission, File/cover or terminal-lifecycle scenario.
