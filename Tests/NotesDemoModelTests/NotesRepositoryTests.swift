@@ -76,6 +76,26 @@ import GraphEvo
         #expect(try await store.files().isEmpty)
         try await store.close()
     }
+    @Test func ambiguousFileOwnershipRefusesNoteDeletionWithoutPartialEdits() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("NotesOwnership-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let context = GraphContext.localFiles(), store = try await context.createGraph(id: GraphID(), at: root.appendingPathComponent("Graph.sqlite"))
+        let repository = NotesRepository(store: store)
+        let first = try await repository.createNote(), second = try await repository.createNote()
+        let input = root.appendingPathComponent("Document.txt"); try Data([1, 2, 3]).write(to: input)
+        let file = try await repository.importDocument(input, note: first, contentType: "public.text")
+        try await repository.setCover(Data([4, 5]), note: first)
+        try await store.insert(NoteFileLink(note: second, file: file.id))
+        await #expect(throws: NotesError.ambiguousFileOwner) { try await repository.deleteNote(first) }
+        #expect(try await repository.note(first) != nil)
+        #expect(try await repository.note(second) != nil)
+        #expect(try await store.file(file.id) == file)
+        #expect(try await repository.cover(first) == Data([4, 5]))
+        #expect(try await repository.files(note: first) == [file])
+        #expect(try await repository.files(note: second) == [file])
+        try await store.close()
+    }
+
     @Test func openingCannotOverwriteRemovalRequestedByAnotherScene() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("NotesOpening-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }

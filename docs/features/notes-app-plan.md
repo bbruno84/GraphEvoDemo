@@ -86,7 +86,7 @@ deletion and interrupted cleanup), plus #196 (ordinary process-death registratio
 recovery during exact terminal deletion). The companion dependency now pins reviewed
 integration `0229766c9d91096eded07ee3abc904417d57b151` in all four locations.
 The complete Notes model/UIKit implementation is present. The current local
-checkpoint passes 12 Notes functions and 12 retained public-entry regressions,
+checkpoint passes 13 Notes functions and 12 retained public-entry regressions,
 including 50-row cursor paging, File subtype exclusion, scene draft isolation,
 opening/removal races, autosave conflicts and presentation-copy lifetime. Debug
 Simulator and signed device Release builds pass. iPhone/iPad Simulator UI smoke
