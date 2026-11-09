@@ -48,14 +48,16 @@ final class DeveloperViewController: UIViewController {
     }
 
     private func setupButtons() {
-        let actions: [(String, Selector)] = [
+        var actions: [(String, Selector)] = [
             ("Open GraphEvo 2", #selector(openPublicV2)),
-            ("Clear Token", #selector(clearToken)),
-            ("Print Token Status", #selector(printTokenStatus)),
-            ("Print Author & Context", #selector(printAuthorAndContext)),
             ("Refresh CloudKit State", #selector(refreshCloudKitState)),
             ("Create CloudKit Probe", #selector(createCloudKitProbe))
         ]
+        #if DEBUG
+        actions += [("Clear Token", #selector(clearToken)),
+            ("Print Token Status", #selector(printTokenStatus)),
+            ("Print Author & Context", #selector(printAuthorAndContext))]
+        #endif
 
         let stack = UIStackView()
         stack.axis = .vertical
@@ -121,6 +123,7 @@ final class DeveloperViewController: UIViewController {
         ])
     }
 
+    #if DEBUG
     @objc private func clearToken() {
         print("🧹 Developer Action: Clear Token")
         guard let graph = GraphProvider.shared.graphIfReady() else { return }
@@ -139,6 +142,8 @@ final class DeveloperViewController: UIViewController {
         graph.ph_debug_printAuthorAndContext()
     }
 
+    #endif
+
     @objc private func updateProviderStatus() {
         let provider = GraphProvider.shared
         readinessLabel.text = provider.readinessDescription()
@@ -153,8 +158,11 @@ final class DeveloperViewController: UIViewController {
             return
         }
         graph.cloudStatusDelegate = provider
+        #if DEBUG
         graph.ph_debug_printAuthorAndContext()
         graph.ph_debug_printTokenStatus()
+        #endif
+        updateProviderStatus()
     }
 
     @objc private func createCloudKitProbe() {
