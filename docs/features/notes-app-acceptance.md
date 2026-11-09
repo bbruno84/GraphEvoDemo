@@ -171,3 +171,40 @@ on both XR and iPad, replacing the external probe variant. The production app
 contains no probe source or launch hook. Local Xcode emits its generic-device
 placeholder operating-system warning; the build succeeds without source errors.
 The final source review records no unresolved actionable findings.
+
+
+## Requested integration review and hosted checkpoint — 2026-11-09
+
+The maintainer requested review, CI and merge. Source review on `8675ce7` finds
+no unresolved actionable issue; the SDK prerequisite receives a separate review.
+The requested [demo checkpoint](https://github.com/bbruno84/GraphEvoDemo/actions/runs/42667170506)
+is unavailable: its job is cancelled without executing any steps after about
+15 minutes queued. GitHub's annotations state that a hosted runner was not
+acquired and report macOS arm64 capacity constraints. The workflow conclusion
+is failure, but no product test or build ran. This is not a passing checkpoint;
+no infrastructure-only retry is requested under the alpha policy. Adequate local
+model/build checks and the bounded physical acceptance remain the merge gate.
+
+
+Library PR #197 is merged at `8f29c20b23b8164cf96f70ecfaa9c488f1667d77`.
+All four companion pins now use that integration commit, superseding the candidate
+pin above. Its shipping Sources and manifest are byte-identical to the physically
+verified `6452a7b2`; subsequent changes only annotate seven tests and record
+review/CI/roadmap evidence. Hosted macOS v2 passes 795 functions and both Swift 6
+consumers. Hosted iOS compilation exposed the now-corrected annotations; the
+final requested library run creates no jobs and has empty logs. Its exact startup
+cause is unavailable and no passing remote iOS result is claimed. A complete
+local library test build with explicit iOS 16 deployment target succeeds.
+
+The demo's local unsigned Simulator build corresponding to its unavailable
+workflow also passes on the local toolchain. Final integration checks use the
+merged library pin. The same shipping source already passed the physical Notes
+run and the 29 model functions; beta/release remote gates remain separate.
+
+Final checks on the integrated pin pass all 29 model functions, manifest and diff
+checks and the signed Release build. That regular build installs and launches
+on both physical XR and iPad without probe arguments. The unsigned Simulator
+checkpoint uses byte-identical shipping library source. Final source review
+covers the four exact pin replacements and documentation only; no further
+production change or hosted CI request is introduced. The maintainer authorizes
+merge under the alpha policy with the documented unavailable remote checkpoint.

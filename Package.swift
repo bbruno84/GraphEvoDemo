@@ -5,7 +5,7 @@ import PackageDescription
 // The override permits local verification before the reviewed library revision is published.
 let localLibrary = ProcessInfo.processInfo.environment["GRAPHEVO_DEMO_LIBRARY_PATH"]
 let dependency: Package.Dependency = localLibrary.map { .package(path: $0) }
-    ?? .package(url: "https://github.com/bbruno84/GraphEvo.git", revision: "6452a7b2fde73fea8800fa8e36367ce97cf573ee")
+    ?? .package(url: "https://github.com/bbruno84/GraphEvo.git", revision: "8f29c20b23b8164cf96f70ecfaa9c488f1667d77")
 let identity = localLibrary.map { URL(fileURLWithPath: $0).lastPathComponent.lowercased() } ?? "graphevo"
 let package = Package(name: "PublicV2DemoModel", platforms: [.iOS("17.6"), .macOS(.v14)],
     dependencies: [dependency], targets: [
