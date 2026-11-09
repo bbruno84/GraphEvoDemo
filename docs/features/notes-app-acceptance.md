@@ -6,7 +6,8 @@ Companion [PR #6](https://github.com/bbruno84/GraphEvoDemo/pull/6):
 `codex/notes-demo`, based on `develop` (`8655400`). Initial implementation
 `48fafa5` is followed by deletion regression/evidence notes and the automatic
 connection/invitation UX follow-up recorded below. All four
-GraphEvo pins use integrated `0229766c9d91096eded07ee3abc904417d57b151`.
+GraphEvo pins at that checkpoint used integrated `0229766c9d91096eded07ee3abc904417d57b151`;
+the physical follow-up below records the current candidate pin.
 GraphEvo prerequisites integrate through #193/#194/#195/#196; their own reports
 retain actual native/CloudKit scope. No hosted CI was requested for this increment.
 User changes in the original verification-laboratory checkout remain untouched.
@@ -125,3 +126,48 @@ launches on iPad and XR, preserving existing app data. Debug signed Simulator
 and Release builds pass without source diagnostics. These deployment results
 do not certify a newly received real invitation's Accept action; that remains
 a device interaction check. No library dependency or native schema changed.
+
+
+## Physical owner/participant acceptance — 2026-11-09
+
+The maintainer validated the automatic connection, iCloud-default switch and
+invitation popup follow-up. All existing graphs were explicitly disposable.
+A controlled test used XR (iOS 18.7.11) as owner and iPad (iPadOS 27) as participant,
+with already accepted invitations. An external guarded driver calls the actual
+Notes model and public GraphEvo APIs using the application-owned context; no
+probe hook is included in the production source. Device Hub cannot share the
+XR screen on iOS 18, so owner permission changes use the SDK against real CloudKit,
+not automated Apple management UI. iPad UI is observed separately.
+
+| Scenario | Result |
+| --- | --- |
+| Owner note, PNG cover and File reach participant with exact values/digests | Passed |
+| Participant NoteEditor body change returns to owner, preserving date/assets | Passed |
+| Native readOnly refresh allows reads/File preview and refuses patch | Passed |
+| iPad UI disables editing/deletion; shared document opens in Quick Look | Passed |
+| Participant leave removes its replica/catalogue; owner retains content | Passed |
+| Owner deletion completes and remains absent after fresh cloud-ready restart | Passed after SDK correction |
+| Participant restart does not restore left graph | Passed |
+| Neighboring notebook note/cover/File fingerprints remain identical on both peers | Passed |
+
+The test found two defects. Notes now starts permission observation before remote
+refresh, so a transient automatic-refresh busy result cannot leave canWrite stale.
+GraphEvo [PR #197](https://github.com/bbruno84/GraphEvo/pull/197) retires the share
+attempt with the deleted binding and narrowly recovers the earlier completed
+cleanup case. Original failures remain preserved in external evidence; the corrected
+XR restart and subsequent checks pass. The four companion pins now use reviewed
+candidate `6452a7b2fde73fea8800fa8e36367ce97cf573ee` from that focused PR, pending
+library integration. No schema/transport-format change or hosted CI is requested.
+
+Evidence remains outside the repository in `ge-notes-device-tests-20261109d`;
+raw account/capability documents and generated stores must not be committed.
+These results supersede the outstanding device scenarios listed earlier for the
+exact tested scope. Revocation, a fresh same-account two-device arrangement and
+assistive-technology/multiwindow manual acceptance remain distinct checks.
+
+Final validation against that exact published pin passes all 29 model functions,
+manifest and diff checks. Signed Release builds, installs and launches normally
+on both XR and iPad, replacing the external probe variant. The production app
+contains no probe source or launch hook. Local Xcode emits its generic-device
+placeholder operating-system warning; the build succeeds without source errors.
+The final source review records no unresolved actionable findings.

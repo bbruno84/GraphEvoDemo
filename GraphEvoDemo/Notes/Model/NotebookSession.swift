@@ -59,7 +59,7 @@ import GraphEvo
         }
         if mode == .shared, let cloud {
             do {
-                sharing = try await cloud.refreshSharing(for: store.id)
+                // Keep the subscription even if the concurrent automatic refresh is busy.
                 let updates = try await cloud.observeSharing(for: store.id)
                 sharingTask = Task { [weak self] in
                     for await value in updates {
@@ -69,6 +69,9 @@ import GraphEvo
                         changed()
                     }
                 }
+                // Observation is the sole publisher of permission state. A transient
+                // verification refusal must not prevent later permission updates.
+                _ = try await cloud.refreshSharing(for: store.id)
             } catch { issue = "Sharing status could not be verified. Local access follows GraphEvo permissions." }
         }
         changesTask = Task { [weak self] in
